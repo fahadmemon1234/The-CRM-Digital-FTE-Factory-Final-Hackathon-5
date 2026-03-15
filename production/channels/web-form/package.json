@@ -1,0 +1,41 @@
+{
+  "name": "@techcorp/support-form",
+  "version": "1.0.0",
+  "description": "TechCorp Customer Success AI Agent - Web Support Form Component",
+  "main": "index.js",
+  "module": "index.js",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0",
+    "build": "echo \"No build step required (JSX)\" && exit 0"
+  },
+  "keywords": [
+    "support",
+    "form",
+    "react",
+    "techcorp",
+    "customer-success"
+  ],
+  "author": "TechCorp AI Engineering Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/techcorp/customer-success-fte.git",
+    "directory": "production/channels/web-form"
+  },
+  "homepage": "https://github.com/techcorp/customer-success-fte#readme",
+  "bugs": {
+    "url": "https://github.com/techcorp/customer-success-fte/issues"
+  }
+}

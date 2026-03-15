@@ -1,0 +1,69 @@
+# TechCorp Customer Success AI Agent - Kubernetes Ingress
+#
+# Kubernetes Ingress for external access to the FTE API.
+# Configured with NGINX Ingress Controller and cert-manager for TLS.
+#
+# INCUBATION MAPPING:
+# -------------------
+# Incubation: No external access (local only)
+# Production: Ingress with TLS termination and automatic certificate renewal
+#
+# Prerequisites:
+# - NGINX Ingress Controller installed
+# - cert-manager installed with letsencrypt-prod ClusterIssuer
+#
+# Usage:
+#   kubectl apply -f ingress.yaml
+#   kubectl get ingress -n customer-success-fte
+#
+# Author: AI Engineering Team
+# Version: 1.0.0 (Production)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: customer-success-fte
+  namespace: customer-success-fte
+  labels:
+    app: customer-success-fte
+    component: api
+  annotations:
+    # Ingress class
+    kubernetes.io/ingress.class: nginx
+    
+    # SSL/TLS configuration
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+    
+    # Proxy settings
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  tls:
+    - hosts:
+        - support-api.yourdomain.com
+      secretName: fte-tls
+  rules:
+    - host: support-api.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: customer-success-fte
+                port:
+                  number: 80

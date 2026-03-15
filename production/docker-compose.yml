@@ -1,0 +1,314 @@
+# TechCorp Customer Success AI Agent - Docker Compose
+#
+# This file defines the complete infrastructure for the FTE system:
+# - Zookeeper: Kafka coordination
+# - Kafka: Message broker
+# - PostgreSQL: Database with pgvector extension
+# - FTE API: FastAPI web service
+# - FTE Worker: Kafka message processor
+#
+# INCUBATION MAPPING:
+# -------------------
+# Incubation: Local development only (no containers)
+# Production: Full Docker Compose stack with all services
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose logs -f        # View logs
+#   docker-compose down           # Stop all services
+#   docker-compose down -v        # Stop and remove volumes
+#
+# Author: AI Engineering Team
+# Version: 1.0.0 (Production)
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # ZOOKEEPER
+  # ============================================================================
+  # Kafka coordination service
+  # Required for Kafka cluster management
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: fte-zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - fte-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # KAFKA
+  # ============================================================================
+  # Message broker for async communication
+  # Handles all FTE system events
+  
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: fte-kafka
+    hostname: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      # Kafka configuration
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      # Performance tuning
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_HEAP_OPTS: -Xmx512M -Xms512M
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - fte-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # POSTGRESQL
+  # ============================================================================
+  # Primary database with pgvector extension
+  # Stores customers, conversations, messages, tickets, metrics
+  
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: fte-postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: fte_db
+      POSTGRES_USER: fte_user
+      POSTGRES_PASSWORD: fte_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    networks:
+      - fte-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fte_user -d fte_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    command: >
+      postgres 
+      -c shared_preload_libraries=vector 
+      -c max_connections=200 
+      -c work_mem=16MB 
+      -c maintenance_work_mem=256MB
+
+  # ============================================================================
+  # FTE API
+  # ============================================================================
+  # FastAPI web service for HTTP endpoints
+  # Handles web form submissions, ticket status, etc.
+  
+  fte-api:
+    build:
+      context: ..
+      dockerfile: production/Dockerfile
+    container_name: fte-api
+    hostname: fte-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # Application
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LOG_LEVEL: INFO
+      
+      # Database
+      DATABASE_URL: postgresql://fte_user:fte_password@postgres:5432/fte_db
+      
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      
+      # Google (Gmail)
+      GOOGLE_CREDENTIALS_PATH: /app/credentials/google.json
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      
+      # Twilio (WhatsApp)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER:-}
+      
+      # Feature flags
+      ENABLE_EMAIL_CHANNEL: "true"
+      ENABLE_WHATSAPP_CHANNEL: "true"
+      ENABLE_WEB_FORM: "true"
+    volumes:
+      - ../production:/app/production:ro
+      - ${GOOGLE_CREDENTIALS_PATH:-./credentials/google.json}:/app/credentials/google.json:ro
+    networks:
+      - fte-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    command: uvicorn production.api.main:app --host 0.0.0.0 --port 8000
+
+  # ============================================================================
+  # FTE WORKER
+  # ============================================================================
+  # Kafka message processor
+  # Consumes incoming tickets and processes through AI agent
+  
+  fte-worker:
+    build:
+      context: ..
+      dockerfile: production/Dockerfile
+    container_name: fte-worker
+    hostname: fte-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      # Application
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LOG_LEVEL: INFO
+      
+      # Database
+      DATABASE_URL: postgresql://fte_user:fte_password@postgres:5432/fte_db
+      
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      
+      # Google (Gmail)
+      GOOGLE_CREDENTIALS_PATH: /app/credentials/google.json
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      
+      # Twilio (WhatsApp)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER:-}
+      
+      # Worker configuration
+      WORKER_CONCURRENCY: 5
+      MESSAGE_PROCESSOR_ENABLED: "true"
+      METRICS_COLLECTOR_ENABLED: "true"
+    volumes:
+      - ../production:/app/production:ro
+      - ${GOOGLE_CREDENTIALS_PATH:-./credentials/google.json}:/app/credentials/google.json:ro
+    networks:
+      - fte-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import asyncio; from production.workers.message_processor import UnifiedMessageProcessor; print('OK')"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+    restart: unless-stopped
+    command: python -m production.workers.message_processor
+
+  # ============================================================================
+  # FTE METRICS WORKER
+  # ============================================================================
+  # Metrics aggregation worker
+  # Consumes metrics events and stores aggregated data
+  
+  fte-metrics:
+    build:
+      context: ..
+      dockerfile: production/Dockerfile
+    container_name: fte-metrics
+    hostname: fte-metrics
+    depends_on:
+      - fte-worker
+      - postgres
+      - kafka
+    environment:
+      # Database
+      DATABASE_URL: postgresql://fte_user:fte_password@postgres:5432/fte_db
+      
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # Worker configuration
+      METRICS_AGGREGATION_INTERVAL: 300
+    volumes:
+      - ../production:/app/production:ro
+    networks:
+      - fte-network
+    restart: unless-stopped
+    command: python -m production.workers.metrics_collector
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+
+networks:
+  fte-network:
+    driver: bridge
+    name: fte-network
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+
+volumes:
+  # Zookeeper data persistence
+  zookeeper-data:
+    driver: local
+  zookeeper-logs:
+    driver: local
+  
+  # Kafka data persistence
+  kafka-data:
+    driver: local
+  
+  # PostgreSQL data persistence
+  postgres-data:
+    driver: local

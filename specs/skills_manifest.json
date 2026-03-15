@@ -1,0 +1,749 @@
+{
+  "manifest_version": "1.0.0",
+  "project_name": "TechCorp Customer Success AI Agent (Digital FTE)",
+  "hackathon": "CRM Digital FTE Factory Hackathon 5",
+  "phase": "Stage 1 - Incubation",
+  "last_updated": "2025-01-15T00:00:00Z",
+  "description": "Core skills manifest defining the discrete capabilities of the Customer Success AI Agent",
+  
+  "skills": [
+    {
+      "skill_id": "knowledge_retrieval",
+      "name": "Knowledge Retrieval",
+      "description": "Search and retrieve relevant product documentation to answer customer questions",
+      "category": "information_retrieval",
+      "priority": "critical",
+      "when_to_use": "Customer asks a product-related question that requires factual information from documentation",
+      "inputs": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "description": "The customer's question or search terms",
+          "validation": {
+            "min_length": 1,
+            "max_length": 1000
+          }
+        },
+        "category_filter": {
+          "type": "string",
+          "required": false,
+          "description": "Optional category to narrow search (e.g., 'billing', 'technical', 'api')",
+          "enum": ["billing", "technical", "api", "account", "integration", "general"]
+        },
+        "max_results": {
+          "type": "integer",
+          "required": false,
+          "default": 5,
+          "description": "Maximum number of results to return",
+          "validation": {
+            "min": 1,
+            "max": 10
+          }
+        }
+      },
+      "outputs": {
+        "results": {
+          "type": "array",
+          "description": "List of relevant documentation snippets",
+          "schema": {
+            "section": "string",
+            "excerpt": "string",
+            "relevance_score": "float",
+            "source_file": "string"
+          }
+        }
+      },
+      "constraints": [
+        "Maximum 5 results returned per query",
+        "Only use verified documentation from /context/ folder",
+        "Do not fabricate information not present in docs",
+        "If no results found, return empty array (do not hallucinate)"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 500,
+        "accuracy_target": 0.85,
+        "relevance_threshold": 0.6
+      },
+      "dependencies": [],
+      "maturity_level": 1,
+      "status": "implemented"
+    },
+    
+    {
+      "skill_id": "sentiment_analysis",
+      "name": "Sentiment Analysis",
+      "description": "Analyze customer emotional state to determine appropriate response tone and escalation needs",
+      "category": "analysis",
+      "priority": "critical",
+      "when_to_use": "EVERY single customer message, without exception",
+      "inputs": {
+        "message_text": {
+          "type": "string",
+          "required": true,
+          "description": "The full text of the customer's message",
+          "validation": {
+            "min_length": 1,
+            "max_length": 10000
+          }
+        },
+        "include_context": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Whether to consider conversation history"
+        }
+      },
+      "outputs": {
+        "sentiment_score": {
+          "type": "float",
+          "description": "Numeric score from 0.0 (very negative) to 1.0 (very positive)"
+        },
+        "sentiment_label": {
+          "type": "string",
+          "enum": ["positive", "neutral", "negative"],
+          "description": "Categorical label"
+        },
+        "confidence": {
+          "type": "float",
+          "description": "Model confidence in the analysis (0.0 to 1.0)"
+        },
+        "emotional_indicators": {
+          "type": "array",
+          "items": "string",
+          "description": "List of words/phrases that influenced the score"
+        },
+        "escalation_recommended": {
+          "type": "boolean",
+          "description": "True if sentiment < 0.3"
+        }
+      },
+      "thresholds": {
+        "positive": {"min": 0.7, "max": 1.0, "action": "standard_handling"},
+        "neutral": {"min": 0.4, "max": 0.69, "action": "standard_handling"},
+        "negative": {"min": 0.3, "max": 0.39, "action": "monitor_closely"},
+        "very_negative": {"min": 0.0, "max": 0.29, "action": "trigger_escalation"}
+      },
+      "constraints": [
+        "Must run on EVERY customer message",
+        "Score must be between 0.0 and 1.0",
+        "Confidence must be reported",
+        "Escalation recommended if score < 0.3"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 200,
+        "accuracy_target": 0.90,
+        "false_positive_rate": 0.05
+      },
+      "dependencies": [],
+      "maturity_level": 2,
+      "status": "in_progress"
+    },
+    
+    {
+      "skill_id": "escalation_decision",
+      "name": "Escalation Decision",
+      "description": "Determine if a customer issue requires human intervention based on defined rules",
+      "category": "decision_making",
+      "priority": "critical",
+      "when_to_use": "AFTER generating every response (as a validation step)",
+      "inputs": {
+        "conversation_context": {
+          "type": "object",
+          "required": true,
+          "description": "Full conversation history and current state"
+        },
+        "sentiment_trend": {
+          "type": "array",
+          "items": "float",
+          "required": true,
+          "description": "List of sentiment scores from conversation"
+        },
+        "current_message": {
+          "type": "string",
+          "required": true,
+          "description": "The customer's latest message"
+        },
+        "detected_topics": {
+          "type": "array",
+          "items": "string",
+          "required": false,
+          "description": "Topics identified in the conversation"
+        }
+      },
+      "outputs": {
+        "should_escalate": {
+          "type": "boolean",
+          "description": "True if escalation is required"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Specific reason for escalation (or null)"
+        },
+        "urgency_level": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Urgency of escalation"
+        },
+        "assigned_team": {
+          "type": "string",
+          "enum": ["Legal Team", "Security Team", "Billing Team", "Sales Team", "Support Team", "Senior Support", "Enterprise Support"],
+          "description": "Target team name (or null)"
+        },
+        "trigger_keywords": {
+          "type": "array",
+          "items": "string",
+          "description": "Keywords that triggered the escalation"
+        }
+      },
+      "escalation_rules": [
+        {
+          "trigger": "legal_threat",
+          "keywords": ["lawyer", "attorney", "lawsuit", "sue", "legal action", "BBB", "FTC complaint"],
+          "urgency": "critical",
+          "team": "Legal Team"
+        },
+        {
+          "trigger": "security_breach",
+          "keywords": ["hacked", "breach", "unauthorized access", "compromised"],
+          "urgency": "critical",
+          "team": "Security Team"
+        },
+        {
+          "trigger": "refund_request",
+          "keywords": ["refund", "chargeback", "money back", "reverse charge"],
+          "urgency": "high",
+          "team": "Billing Team"
+        },
+        {
+          "trigger": "pricing_inquiry",
+          "keywords": ["discount", "pricing", "cheaper", "custom pricing", "quote"],
+          "urgency": "medium",
+          "team": "Sales Team"
+        },
+        {
+          "trigger": "human_request",
+          "keywords": ["talk to a human", "real person", "human agent", "manager"],
+          "urgency": "medium",
+          "team": "Support Team"
+        },
+        {
+          "trigger": "low_sentiment",
+          "condition": "sentiment_score < 0.3",
+          "urgency": "medium-high",
+          "team": "Senior Support"
+        },
+        {
+          "trigger": "failed_search",
+          "condition": "2+ consecutive failed knowledge searches",
+          "urgency": "medium",
+          "team": "Support Team"
+        },
+        {
+          "trigger": "enterprise_issue",
+          "condition": "customer_tier == 'enterprise' AND issue_type == 'technical'",
+          "urgency": "high",
+          "team": "Enterprise Support"
+        }
+      ],
+      "constraints": [
+        "Must evaluate after every response",
+        "Multiple triggers possible - use highest urgency",
+        "Enterprise customers get priority handling",
+        "Legal and security triggers are always critical"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 100,
+        "accuracy_target": 0.95,
+        "false_negative_rate": 0.02
+      },
+      "dependencies": ["sentiment_analysis"],
+      "maturity_level": 2,
+      "status": "implemented"
+    },
+    
+    {
+      "skill_id": "channel_adaptation",
+      "name": "Channel Adaptation",
+      "description": "Format responses appropriately for the target communication channel",
+      "category": "formatting",
+      "priority": "high",
+      "when_to_use": "BEFORE sending any response to a customer",
+      "inputs": {
+        "response_text": {
+          "type": "string",
+          "required": true,
+          "description": "The raw response content to format"
+        },
+        "target_channel": {
+          "type": "string",
+          "required": true,
+          "enum": ["email", "whatsapp", "web_form"],
+          "description": "Target communication channel"
+        },
+        "customer_name": {
+          "type": "string",
+          "required": false,
+          "description": "Customer's name for personalization"
+        },
+        "is_followup": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Whether this is a follow-up message"
+        }
+      },
+      "outputs": {
+        "formatted_response": {
+          "type": "string",
+          "description": "Channel-appropriate formatted response"
+        },
+        "character_count": {
+          "type": "integer",
+          "description": "Length of formatted response"
+        },
+        "within_limits": {
+          "type": "boolean",
+          "description": "True if response meets channel length limits"
+        },
+        "formatting_applied": {
+          "type": "array",
+          "items": "string",
+          "description": "List of formatting elements added"
+        }
+      },
+      "channel_limits": {
+        "email": {
+          "max_words": 500,
+          "style": "formal",
+          "required_elements": ["greeting", "signature", "contact_info"],
+          "greeting_format": "Dear [Name],",
+          "signature_format": "Best regards,\nTechCorp AI Support Team\nsupport@techcorp.com"
+        },
+        "whatsapp": {
+          "max_chars": 300,
+          "style": "casual",
+          "required_elements": ["footer"],
+          "greeting_format": "Hi [Name]! 👋 (optional)",
+          "footer_format": "📱 Reply for more help or type 'human' for live support.",
+          "emoji_limit": 2
+        },
+        "web_form": {
+          "max_words": 300,
+          "style": "semi-formal",
+          "required_elements": ["greeting", "footer"],
+          "greeting_format": "Hello [Name],",
+          "footer_format": "---\nNeed more help? Reply to this message or visit our support portal."
+        }
+      },
+      "constraints": [
+        "Must respect channel length limits",
+        "Required elements must be included",
+        "Tone must match channel guidelines",
+        "Emoji usage limited on professional channels"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 100,
+        "formatting_accuracy": 0.98,
+        "compliance_rate": 1.0
+      },
+      "dependencies": [],
+      "maturity_level": 1,
+      "status": "implemented"
+    },
+    
+    {
+      "skill_id": "customer_identification",
+      "name": "Customer Identification",
+      "description": "Identify and unify customer identity across all communication channels",
+      "category": "identity_management",
+      "priority": "critical",
+      "when_to_use": "ON EVERY incoming message (first processing step)",
+      "inputs": {
+        "email_address": {
+          "type": "string",
+          "required": false,
+          "description": "Customer's email (from email channel or account lookup)"
+        },
+        "phone_number": {
+          "type": "string",
+          "required": false,
+          "description": "Customer's phone (from WhatsApp)"
+        },
+        "form_submission_id": {
+          "type": "string",
+          "required": false,
+          "description": "Web form session identifier"
+        },
+        "provided_name": {
+          "type": "string",
+          "required": false,
+          "description": "Name customer provided"
+        },
+        "workspace_domain": {
+          "type": "string",
+          "required": false,
+          "description": "Customer's workspace subdomain"
+        }
+      },
+      "outputs": {
+        "unified_customer_id": {
+          "type": "string",
+          "description": "Unique identifier for this customer (UUID format)"
+        },
+        "is_returning_customer": {
+          "type": "boolean",
+          "description": "True if customer has prior interactions"
+        },
+        "merged_history": {
+          "type": "array",
+          "description": "Combined conversation history across all channels",
+          "schema": {
+            "channel": "string",
+            "timestamp": "ISO8601",
+            "topic": "string"
+          }
+        },
+        "identified_channels": {
+          "type": "array",
+          "items": "string",
+          "description": "List of channels this customer has used"
+        },
+        "customer_tier": {
+          "type": "string",
+          "enum": ["starter", "growth", "enterprise"],
+          "description": "Subscription tier"
+        },
+        "confidence_score": {
+          "type": "float",
+          "description": "Confidence in the identification (0.0-1.0)"
+        }
+      },
+      "identity_matching_rules": [
+        {
+          "match_type": "exact_email",
+          "condition": "email_address matches existing record",
+          "confidence": 1.0,
+          "action": "definitive_match"
+        },
+        {
+          "match_type": "phone_plus_name",
+          "condition": "phone_number + name match existing record",
+          "confidence": 0.95,
+          "action": "definitive_match"
+        },
+        {
+          "match_type": "email_domain_plus_name",
+          "condition": "email domain + name match",
+          "confidence": 0.85,
+          "action": "probable_match"
+        },
+        {
+          "match_type": "workspace_domain",
+          "condition": "workspace domain match only",
+          "confidence": 0.7,
+          "action": "possible_match_verify"
+        }
+      ],
+      "constraints": [
+        "Must run on EVERY incoming message",
+        "Confidence score must be reported",
+        "Low confidence matches require verification",
+        "GDPR compliance for data retention"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 100,
+        "accuracy_target": 0.95,
+        "cross_channel_identification_rate": 0.95
+      },
+      "dependencies": [],
+      "maturity_level": 2,
+      "status": "implemented"
+    },
+    
+    {
+      "skill_id": "ticket_management",
+      "name": "Ticket Management",
+      "description": "Create, update, and track support tickets for customer interactions",
+      "category": "case_management",
+      "priority": "critical",
+      "when_to_use": "FIRST step in every customer interaction",
+      "inputs": {
+        "customer_id": {
+          "type": "string",
+          "required": true,
+          "description": "Customer identifier (usually email address)"
+        },
+        "issue": {
+          "type": "string",
+          "required": true,
+          "description": "Description of the customer issue"
+        },
+        "priority": {
+          "type": "string",
+          "required": true,
+          "enum": ["low", "medium", "high", "critical"],
+          "default": "medium",
+          "description": "Ticket priority level"
+        },
+        "category": {
+          "type": "string",
+          "required": false,
+          "description": "Issue category for routing"
+        },
+        "channel": {
+          "type": "string",
+          "required": true,
+          "enum": ["email", "whatsapp", "web_form"],
+          "description": "Communication channel"
+        }
+      },
+      "outputs": {
+        "ticket_id": {
+          "type": "string",
+          "description": "Unique ticket identifier (format: tkt_XXXXX)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "in_progress", "resolved", "escalated"],
+          "description": "Initial ticket status"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "ISO8601",
+          "description": "Ticket creation timestamp"
+        },
+        "sla_deadline": {
+          "type": "string",
+          "format": "ISO8601",
+          "description": "SLA resolution deadline"
+        }
+      },
+      "sla_targets": {
+        "low": {"response_hours": 24, "resolution_hours": 72},
+        "medium": {"response_hours": 12, "resolution_hours": 48},
+        "high": {"response_hours": 4, "resolution_hours": 24},
+        "critical": {"response_hours": 2, "resolution_hours": 12}
+      },
+      "constraints": [
+        "Must be called FIRST for every interaction",
+        "Ticket ID must be captured for all subsequent operations",
+        "SLA deadlines must be calculated based on priority",
+        "All tickets must be persisted to database"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 150,
+        "creation_success_rate": 1.0,
+        "data_persistence_rate": 1.0
+      },
+      "dependencies": ["customer_identification"],
+      "maturity_level": 1,
+      "status": "implemented"
+    },
+    
+    {
+      "skill_id": "response_generation",
+      "name": "Response Generation",
+      "description": "Generate accurate, helpful responses using knowledge base and conversation context",
+      "category": "natural_language_generation",
+      "priority": "critical",
+      "when_to_use": "After knowledge retrieval and before channel adaptation",
+      "inputs": {
+        "customer_message": {
+          "type": "string",
+          "required": true,
+          "description": "Customer's original message"
+        },
+        "knowledge_results": {
+          "type": "array",
+          "required": false,
+          "description": "Results from knowledge base search"
+        },
+        "customer_history": {
+          "type": "object",
+          "required": false,
+          "description": "Customer's conversation history"
+        },
+        "sentiment_score": {
+          "type": "float",
+          "required": false,
+          "description": "Analyzed sentiment score"
+        },
+        "ticket_id": {
+          "type": "string",
+          "required": true,
+          "description": "Associated ticket ID"
+        }
+      },
+      "outputs": {
+        "response_text": {
+          "type": "string",
+          "description": "Generated response content"
+        },
+        "confidence_score": {
+          "type": "float",
+          "description": "Agent confidence in response accuracy (0.0-1.0)"
+        },
+        "sources_cited": {
+          "type": "array",
+          "items": "string",
+          "description": "Knowledge base sections referenced"
+        },
+        "action_items": {
+          "type": "array",
+          "items": "string",
+          "description": "Actionable next steps for customer"
+        }
+      },
+      "quality_standards": {
+        "accuracy": "Only provide information from verified knowledge base sources",
+        "completeness": "Address all parts of customer's question",
+        "clarity": "Use clear, jargon-free language",
+        "empathy": "Acknowledge customer frustrations when appropriate",
+        "actionability": "Provide clear next steps"
+      },
+      "constraints": [
+        "Do not fabricate information",
+        "Do not promise unbuilt features",
+        "Do not discuss competitors",
+        "Do not share internal information",
+        "Cite sources when providing factual information"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 1500,
+        "accuracy_target": 0.85,
+        "helpfulness_score": 4.0,
+        "confidence_threshold": 0.7
+      },
+      "dependencies": ["knowledge_retrieval", "customer_identification"],
+      "maturity_level": 2,
+      "status": "implemented"
+    },
+    
+    {
+      "skill_id": "message_persistence",
+      "name": "Message Persistence",
+      "description": "Ensure all messages are persisted to Kafka for reliability and audit trail",
+      "category": "infrastructure",
+      "priority": "critical",
+      "when_to_use": "On every message send and receive",
+      "inputs": {
+        "message_id": {
+          "type": "string",
+          "required": true,
+          "description": "Unique message identifier"
+        },
+        "ticket_id": {
+          "type": "string",
+          "required": true,
+          "description": "Associated ticket ID"
+        },
+        "content": {
+          "type": "string",
+          "required": true,
+          "description": "Message content"
+        },
+        "metadata": {
+          "type": "object",
+          "required": true,
+          "description": "Message metadata (sender, timestamp, channel, etc.)"
+        }
+      },
+      "outputs": {
+        "persistence_status": {
+          "type": "string",
+          "enum": ["persisted", "pending", "failed"],
+          "description": "Persistence status"
+        },
+        "kafka_offset": {
+          "type": "integer",
+          "description": "Kafka message offset"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "ISO8601",
+          "description": "Persistence timestamp"
+        }
+      },
+      "kafka_topics": {
+        "incoming": "fte.messages.incoming",
+        "outgoing": "fte.messages.outgoing",
+        "audit": "fte.audit_log"
+      },
+      "constraints": [
+        "All messages must be persisted before acknowledgment",
+        "Kafka message ordering must be preserved per ticket",
+        "Failed persistence must trigger retry with exponential backoff",
+        "Messages must be retained for minimum 90 days"
+      ],
+      "performance_targets": {
+        "latency_p95_ms": 50,
+        "persistence_success_rate": 1.0,
+        "message_loss_rate": 0.0
+      },
+      "dependencies": [],
+      "maturity_level": 3,
+      "status": "implemented"
+    }
+  ],
+  
+  "skill_composition": {
+    "message_processing_workflow": [
+      "customer_identification",
+      "sentiment_analysis",
+      "ticket_management",
+      "knowledge_retrieval",
+      "response_generation",
+      "escalation_decision",
+      "channel_adaptation",
+      "message_persistence"
+    ],
+    "escalation_workflow": [
+      "escalation_decision",
+      "ticket_management",
+      "message_persistence"
+    ]
+  },
+  
+  "agent_maturity_model": {
+    "level_1_reactive": {
+      "description": "Responds to customer queries with knowledge base lookup",
+      "required_skills": ["knowledge_retrieval", "ticket_management", "response_generation"],
+      "capabilities": ["Basic Q&A", "Ticket creation", "Simple responses"]
+    },
+    "level_2_contextual": {
+      "description": "Maintains conversation history and customer context",
+      "required_skills": ["customer_identification", "message_persistence"],
+      "capabilities": ["Cross-channel identity", "Conversation continuity", "Context-aware responses"]
+    },
+    "level_3_proactive": {
+      "description": "Anticipates needs and suggests relevant actions",
+      "required_skills": ["sentiment_analysis"],
+      "capabilities": ["Intent prediction", "Proactive suggestions", "Contextual recommendations"]
+    },
+    "level_4_adaptive": {
+      "description": "Learns from interactions and improves responses",
+      "required_skills": ["escalation_decision"],
+      "capabilities": ["Sentiment-based adaptation", "Learning from feedback", "Response optimization"]
+    },
+    "level_5_autonomous": {
+      "description": "Handles complex multi-step workflows independently",
+      "required_skills": ["channel_adaptation"],
+      "capabilities": ["Workflow automation", "Multi-step tasks", "Autonomous decision making"]
+    }
+  },
+  
+  "metrics": {
+    "skill_usage_tracking": true,
+    "performance_monitoring": true,
+    "error_rate_tracking": true,
+    "latency_percentiles": ["p50", "p90", "p95", "p99"]
+  },
+  
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "date": "2025-01-15",
+      "changes": ["Initial skills manifest for Stage 1 (Incubation)"]
+    }
+  ]
+}

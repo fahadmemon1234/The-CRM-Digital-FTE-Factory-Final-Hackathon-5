@@ -1,0 +1,27 @@
+# TechCorp Customer Success AI Agent - Kubernetes Namespace
+#
+# Creates an isolated namespace for all FTE resources.
+#
+# INCUBATION MAPPING:
+# -------------------
+# Incubation: Local development (no isolation)
+# Production: Dedicated Kubernetes namespace for resource isolation
+#
+# Usage:
+#   kubectl apply -f namespace.yaml
+#   kubectl get namespaces
+#
+# Author: AI Engineering Team
+# Version: 1.0.0 (Production)
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: customer-success-fte
+  labels:
+    app: customer-success-fte
+    environment: production
+    team: ai-engineering
+  annotations:
+    description: "Namespace for TechCorp Customer Success AI Agent (Digital FTE)"
+    created-by: "AI Engineering Team"

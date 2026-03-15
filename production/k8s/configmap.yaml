@@ -1,0 +1,64 @@
+# TechCorp Customer Success AI Agent - Kubernetes ConfigMap
+#
+# Configuration settings for the FTE application.
+# Non-sensitive configuration values.
+#
+# INCUBATION MAPPING:
+# -------------------
+# Incubation: Hardcoded config in Python files
+# Production: Kubernetes ConfigMap for centralized configuration
+#
+# Usage:
+#   kubectl apply -f configmap.yaml
+#   kubectl get configmap fte-config -n customer-success-fte -o yaml
+#
+# Author: AI Engineering Team
+# Version: 1.0.0 (Production)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fte-config
+  namespace: customer-success-fte
+  labels:
+    app: customer-success-fte
+    component: config
+data:
+  # Environment configuration
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  
+  # Kafka configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka.kafka.svc.cluster.local:9092"
+  
+  # PostgreSQL configuration
+  POSTGRES_HOST: "postgres.customer-success-fte.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "fte_db"
+  POSTGRES_USER: "fte_user"
+  
+  # Channel enable flags
+  GMAIL_ENABLED: "true"
+  WHATSAPP_ENABLED: "true"
+  WEBFORM_ENABLED: "true"
+  
+  # Channel-specific limits
+  MAX_EMAIL_LENGTH: "2000"
+  MAX_WHATSAPP_LENGTH: "1600"
+  MAX_WEBFORM_LENGTH: "1000"
+  
+  # AI Agent configuration
+  AI_MODEL: "gpt-4o"
+  AI_TEMPERATURE: "0.7"
+  AI_MAX_TOKENS: "1024"
+  
+  # Worker configuration
+  WORKER_CONCURRENCY: "5"
+  MESSAGE_PROCESSOR_ENABLED: "true"
+  METRICS_COLLECTOR_ENABLED: "true"
+  METRICS_AGGREGATION_INTERVAL: "300"
+  
+  # Feature flags
+  ENABLE_SENTIMENT_ANALYSIS: "true"
+  ENABLE_AUTO_ESCALATION: "true"
+  ENABLE_CONVERSATION_HISTORY: "true"

@@ -1,0 +1,113 @@
+# TechCorp Customer Success AI Agent - API Deployment
+#
+# Kubernetes Deployment for the FastAPI application.
+#
+# INCUBATION MAPPING:
+# -------------------
+# Incubation: Local uvicorn execution
+# Production: Kubernetes Deployment with 3 replicas, health probes, resource limits
+#
+# Usage:
+#   kubectl apply -f deployment-api.yaml
+#   kubectl get deployments -n customer-success-fte
+#   kubectl get pods -n customer-success-fte -l component=api
+#
+# Author: AI Engineering Team
+# Version: 1.0.0 (Production)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fte-api
+  namespace: customer-success-fte
+  labels:
+    app: customer-success-fte
+    component: api
+    version: v2
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: customer-success-fte
+      component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: customer-success-fte
+        component: api
+        version: v2
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: fte-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: fte-api
+          image: your-registry/customer-success-fte:latest
+          imagePullPolicy: Always
+          command:
+            - uvicorn
+            - production.api.main:app
+            - --host
+            - "0.0.0.0"
+            - --port
+            - "8000"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: fte-config
+            - secretRef:
+                name: fte-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: customer-success-fte
+                    component: api
+                topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 30

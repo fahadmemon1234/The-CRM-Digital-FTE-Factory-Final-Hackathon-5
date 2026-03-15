@@ -1,0 +1,423 @@
+# ============================================================================
+# TechCorp Customer Success AI Agent - .gitignore
+# ============================================================================
+
+# ============================================================================
+# Python
+# ============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.env
+.env.local
+.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ============================================================================
+# Node.js / React / Next.js (Frontend)
+# ============================================================================
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Directory for instrumented libs
+lib-cov
+
+# Coverage directory
+coverage/
+*.lcov
+
+# ESLint
+.eslintcache
+
+# Build output
+dist/
+.next/
+out/
+build
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local Next.js configuration
+next.config.js.local
+next.config.mjs.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ============================================================================
+# Environment & Secrets
+# ============================================================================
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.backup
+
+# Secret keys
+*.pem
+*.key
+secrets/
+credentials/
+!credentials/.gitkeep
+
+# API keys
+api_keys.txt
+*.secret
+
+# ============================================================================
+# Database
+# ============================================================================
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+
+# PostgreSQL
+*.sql.gz
+dump.sql
+dump.rdb
+
+# Database backups
+backups/
+*.backup
+
+# ============================================================================
+# IDE & Editors
+# ============================================================================
+# Visual Studio Code
+.vscode/
+*.code-workspace
+*.code-snippets
+
+# JetBrains IDEs (PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+*.atom/
+
+# Vim
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+
+# Eclipse
+.project
+.classpath
+.settings/
+.loadpath
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# ============================================================================
+# Logs
+# ============================================================================
+logs/
+*.log
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================================================
+# Docker
+# ============================================================================
+# Docker volumes
+volumes/
+
+# Docker compose override (local development)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Docker build cache
+.docker/
+
+# ============================================================================
+# Kubernetes
+# ============================================================================
+# Local kubectl config
+.kube/
+
+# Kubernetes secrets (never commit!)
+*-secret.yaml
+secrets.yaml
+!production/k8s/secrets.yaml.example
+
+# ============================================================================
+# Testing
+# ============================================================================
+# Test results
+test-results/
+junit/
+*.test-result
+
+# Mock data
+mock_data/
+test_data/
+!tests/fixtures/.gitkeep
+
+# ============================================================================
+# Documentation
+# ============================================================================
+# Generated documentation
+docs/_build/
+site/
+public/
+
+# Local documentation edits
+*.md.bak
+*.md.backup
+
+# ============================================================================
+# Build Artifacts
+# ============================================================================
+# Compiled files
+*.o
+*.a
+*.bin
+*.exe
+*.dll
+
+# Package files
+*.tar
+*.tar.gz
+*.rar
+*.zip
+*.jar
+*.war
+
+# ============================================================================
+# Application Specific
+# ============================================================================
+# Application logs
+*.log.*
+logs/
+application-logs/
+
+# Cache directories
+.cache/
+.cache-*
+*.cache
+
+# Local development files
+local_settings.py
+local_config.py
+config.local.py
+
+# Database test files
+test_db.*
+test_database.*
+
+# ============================================================================
+# Sensitive Files
+# ============================================================================
+# Private keys
+id_rsa
+id_rsa.pub
+*.ppk
+
+# Certificates
+*.crt
+*.cer
+*.der
+
+# AWS
+.aws/
+credentials
+!credentials.example
+
+# Google Cloud
+google-credentials.json
+service-account.json
+*-service-account.json
+!*-service-account.json.example
+
+# Twilio
+twilio-credentials.json
+!twilio-credentials.json.example
+
+# ============================================================================
+# Misc
+# ============================================================================
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# celery
+celerybeat-schedule
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+
+# SpyderPython
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+
+# pytype
+.pytype/
+
+# cython
+*.pyx
+
+# ============================================================================
+# End of .gitignore
+# ============================================================================

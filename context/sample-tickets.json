@@ -1,0 +1,584 @@
+{
+  "tickets": [
+    {
+      "id": 1,
+      "channel": "email",
+      "category": "billing",
+      "subject": "Question about my invoice",
+      "message": "Hi TechCorp Team,\n\nI received my invoice for this month and noticed a charge of $79, but I thought I was on the Starter plan which should be $29. Could you please help me understand what happened here? I haven't upgraded my plan as far as I know.\n\nMy account email is sarah.johnson@acmecorp.com\n\nThank you for your assistance.\n\nBest regards,\nSarah Johnson\nAcme Corporation",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-10T09:15:00Z"
+    },
+    {
+      "id": 2,
+      "channel": "whatsapp",
+      "category": "technical",
+      "message": "hey my app keeps crashing when i try to upload files. using iphone. pls help",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-10T10:22:00Z"
+    },
+    {
+      "id": 3,
+      "channel": "web_form",
+      "category": "general",
+      "subject": "Integration with Slack",
+      "message": "Hello, I'm trying to connect our TechCorp workspace with our Slack channel but I'm not seeing the notifications come through. I've followed the setup guide but something isn't working. Can you provide some guidance on how to properly configure the Slack integration?",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-10T11:45:00Z"
+    },
+    {
+      "id": 4,
+      "channel": "email",
+      "category": "bug_report",
+      "subject": "URGENT: Data loss issue - tasks disappearing",
+      "message": "Dear TechCorp Support,\n\nThis is extremely concerning. We've discovered that several tasks in our 'Q1 Marketing Campaign' project have completely disappeared. These tasks contained important deadlines and assignments. \n\nThis happened after the latest update yesterday. We need this resolved immediately as it's affecting our entire team's productivity. Please escalate this to your technical team.\n\nAccount: enterprise@globaltech.io\nProject: Q1 Marketing Campaign\n\nAwaiting your urgent response.\n\nMichael Chen\nCTO, GlobalTech Industries",
+      "sentiment": 0.1,
+      "timestamp": "2025-01-10T14:30:00Z"
+    },
+    {
+      "id": 5,
+      "channel": "whatsapp",
+      "category": "billing",
+      "message": "how do i cancel my subscription? found another tool that works better for us",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-10T15:10:00Z"
+    },
+    {
+      "id": 6,
+      "channel": "web_form",
+      "category": "feedback",
+      "subject": "Feature request: Dark mode",
+      "message": "Hi there! Love using TechCorp for our team projects. One thing that would make it even better is a dark mode option. Many of us work late hours and the bright interface can be straining on the eyes. Is this something on your roadmap? Thanks for considering!",
+      "sentiment": 0.8,
+      "timestamp": "2025-01-10T16:00:00Z"
+    },
+    {
+      "id": 7,
+      "channel": "email",
+      "category": "technical",
+      "subject": "API rate limit questions",
+      "message": "Hello TechCorp Team,\n\nWe're developing a custom integration using your API and we're running into rate limit issues. Our current plan is Growth, but we're hitting the 10,000 requests/hour limit pretty quickly.\n\nCould you provide information on:\n1. What happens when we exceed the limit?\n2. Options for increasing our rate limit?\n3. Best practices for optimizing API calls?\n\nWe're considering upgrading to Enterprise if that would help.\n\nThanks,\nDavid Park\nLead Developer, InnovateSoft",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-11T08:45:00Z"
+    },
+    {
+      "id": 8,
+      "channel": "whatsapp",
+      "category": "general",
+      "message": "can i add more than 50 users on growth plan?",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-11T09:30:00Z"
+    },
+    {
+      "id": 9,
+      "channel": "web_form",
+      "category": "billing",
+      "subject": "Request for refund",
+      "message": "I was charged for the annual plan but I meant to sign up for the monthly option. The charge was $948 which is quite significant for our small business. Is it possible to get a refund and switch to the monthly billing cycle instead? This happened just 2 days ago.",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-11T10:15:00Z"
+    },
+    {
+      "id": 10,
+      "channel": "email",
+      "category": "technical",
+      "subject": "SSO configuration assistance needed",
+      "message": "Dear TechCorp Support,\n\nWe're an Enterprise customer trying to set up SAML SSO with our Azure AD. I've followed the documentation but we're encountering an error during the authentication flow.\n\nError message: \"Invalid SAML response - assertion expired\"\n\nOur IT team has verified the clock synchronization on our end. Could someone from your team help us troubleshoot this? We have about 200 users waiting to be onboarded.\n\nBest regards,\nJennifer Martinez\nIT Director, MegaCorp Solutions\nAccount ID: ENT-2024-0892",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-11T11:00:00Z"
+    },
+    {
+      "id": 11,
+      "channel": "whatsapp",
+      "category": "bug_report",
+      "message": "notifications not working on android app. tried reinstalling still nothing",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-11T13:20:00Z"
+    },
+    {
+      "id": 12,
+      "channel": "web_form",
+      "category": "general",
+      "subject": "Export data for compliance audit",
+      "message": "Hello, our compliance team needs to export all user activity logs for the past year for an upcoming audit. Is this possible through the admin panel or would we need to use the API? We're on the Enterprise plan. Please advise on the best approach.",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-11T14:45:00Z"
+    },
+    {
+      "id": 13,
+      "channel": "email",
+      "category": "feedback",
+      "subject": "Excellent customer service experience",
+      "message": "Hi TechCorp Team,\n\nI just wanted to take a moment to commend your support team. I had an issue last week with file uploads and the support agent (I believe her name was Lisa) was incredibly helpful and resolved my issue within minutes.\n\nThis level of service is why we continue to recommend TechCorp to other businesses. Keep up the great work!\n\nWarm regards,\nRobert Thompson\nOperations Manager, Creative Studios Inc.",
+      "sentiment": 0.95,
+      "timestamp": "2025-01-12T09:00:00Z"
+    },
+    {
+      "id": 14,
+      "channel": "whatsapp",
+      "category": "technical",
+      "message": "is there a way to bulk delete tasks? have like 100 old ones to clean up",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-12T10:30:00Z"
+    },
+    {
+      "id": 15,
+      "channel": "web_form",
+      "category": "billing",
+      "subject": "Upgrade to Enterprise - pricing inquiry",
+      "message": "We're currently on the Growth plan with 45 users and are interested in upgrading to Enterprise. We'd need SSO, advanced security features, and dedicated support. Could someone from sales reach out with a custom quote? We're looking to make a decision within the next two weeks.",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-12T11:15:00Z"
+    },
+    {
+      "id": 16,
+      "channel": "email",
+      "category": "bug_report",
+      "subject": "Webhook payloads incomplete",
+      "message": "TechCorp Development Team,\n\nWe've been experiencing issues with webhook payloads being truncated. Specifically, when a task with a long description (>500 characters) is created, the webhook payload cuts off mid-sentence.\n\nThis is causing problems with our automated workflows. We've tested with multiple endpoints and the issue persists.\n\nWebhook ID: wh_789456123\nEndpoint: https://api.ourcompany.com/techcorp-webhooks\n\nPlease investigate and let us know if you need any additional information.\n\nBest,\nAlex Rivera\nSenior Engineer, DataFlow Systems",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-12T13:00:00Z"
+    },
+    {
+      "id": 17,
+      "channel": "whatsapp",
+      "category": "general",
+      "message": "forgot my password and 2fa code. account recovery pls",
+      "sentiment": 0.2,
+      "timestamp": "2025-01-12T14:20:00Z"
+    },
+    {
+      "id": 18,
+      "channel": "web_form",
+      "category": "technical",
+      "subject": "File upload size limit",
+      "message": "I'm trying to upload a training video (about 150MB) to a task but keep getting an error that the file is too large. I thought the Growth plan allowed 100MB files? Is there a workaround for this or do we need to upgrade to Enterprise?",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-12T15:30:00Z"
+    },
+    {
+      "id": 19,
+      "channel": "email",
+      "category": "general",
+      "subject": "GDPR data deletion request",
+      "message": "Dear TechCorp Legal Team,\n\nUnder GDPR Article 17 (Right to Erasure), I am requesting the deletion of all personal data associated with my email address: emma.wilson@example.co.uk\n\nThis includes:\n- Account information\n- Activity logs\n- Uploaded files\n- Any other personal data\n\nPlease confirm receipt of this request and provide a timeline for completion as required by GDPR regulations.\n\nThank you,\nEmma Wilson",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-13T08:00:00Z"
+    },
+    {
+      "id": 20,
+      "channel": "whatsapp",
+      "category": "feedback",
+      "message": "love the new dashboard update! much cleaner and easier to navigate 👍",
+      "sentiment": 0.9,
+      "timestamp": "2025-01-13T09:45:00Z"
+    },
+    {
+      "id": 21,
+      "channel": "web_form",
+      "category": "technical",
+      "subject": "Integration with Salesforce not syncing",
+      "message": "Our Salesforce integration stopped syncing yesterday afternoon. Contacts and deals that are updated in Salesforce are not reflecting in TechCorp. We've tried disconnecting and reconnecting the integration but the issue persists. This is affecting our sales team's workflow significantly.",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-13T10:30:00Z"
+    },
+    {
+      "id": 22,
+      "channel": "email",
+      "category": "billing",
+      "subject": "Duplicate charge on credit card",
+      "message": "Hello,\n\nI noticed two charges of $79 on my credit card statement from TechCorp this month (dates: Jan 3 and Jan 5). I believe this is a duplicate charge error. My account should only be charged once per month.\n\nPlease investigate and process a refund for the duplicate charge.\n\nCard ending in: 4532\nAccount: mark.peterson@smallbiz.com\n\nThank you,\nMark Peterson",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-13T11:15:00Z"
+    },
+    {
+      "id": 23,
+      "channel": "whatsapp",
+      "category": "general",
+      "message": "how long does data export take? submitted request 3 days ago",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-13T13:00:00Z"
+    },
+    {
+      "id": 24,
+      "channel": "web_form",
+      "category": "bug_report",
+      "subject": "Calendar view showing incorrect dates",
+      "message": "The calendar view in the project dashboard is displaying incorrect dates. Tasks due on January 20th are showing as January 19th. This is causing confusion for our team about deadlines. Tested on Chrome and Firefox with the same result. Timezone is set to EST.",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-13T14:00:00Z"
+    },
+    {
+      "id": 25,
+      "channel": "email",
+      "category": "general",
+      "subject": "Training session request for new team",
+      "message": "Dear TechCorp Team,\n\nWe just signed up for the Enterprise plan and will be onboarding 75 new users next week. Is it possible to schedule a training session for our team? We'd like to ensure everyone understands how to use the platform effectively.\n\nPreferred dates: January 20-24\nPreferred time: 2:00 PM - 4:00 PM EST\n\nPlease let us know what's available.\n\nBest regards,\nPatricia Lee\nHR Director, TechStart Inc.\nAccount ID: ENT-2025-0012",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-14T08:30:00Z"
+    },
+    {
+      "id": 26,
+      "channel": "whatsapp",
+      "category": "billing",
+      "message": "wanna upgrade from starter to growth. how do i do that?",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-14T09:15:00Z"
+    },
+    {
+      "id": 27,
+      "channel": "web_form",
+      "category": "feedback",
+      "subject": "Mobile app needs offline mode",
+      "message": "The mobile app is great when I have connectivity, but it would be incredibly useful to have an offline mode where I can at least view tasks and add notes that sync when I'm back online. Many of our field workers don't always have reliable internet. Hope you consider this!",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-14T10:00:00Z"
+    },
+    {
+      "id": 28,
+      "channel": "email",
+      "category": "technical",
+      "subject": "Custom field validation not working",
+      "message": "Hi Support Team,\n\nWe've set up custom fields with validation rules (required fields, number ranges, etc.) but the validation doesn't seem to be enforced when team members create tasks. Users are able to submit tasks without filling in required fields.\n\nIs this a known issue? We're on the Growth plan.\n\nWorkspace: acme-corp.techcorp.com\n\nThanks,\nJames Wilson\nProject Manager, Acme Corp",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-14T11:30:00Z"
+    },
+    {
+      "id": 29,
+      "channel": "whatsapp",
+      "category": "general",
+      "message": "can you change my account email? got a new job",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-14T13:45:00Z"
+    },
+    {
+      "id": 30,
+      "channel": "web_form",
+      "category": "billing",
+      "subject": "Invoice download not working",
+      "message": "When I try to download invoices from the billing section, the PDF download fails. I've tried multiple browsers (Chrome, Safari, Edge) and the issue persists. I need these invoices for our accounting department. Can you help or send the invoices directly via email?",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-14T14:30:00Z"
+    },
+    {
+      "id": 31,
+      "channel": "email",
+      "category": "bug_report",
+      "subject": "CRITICAL: Security concern - unauthorized access",
+      "message": "URGENT SECURITY ISSUE\n\nWe detected login activity from an IP address in a country where we don't operate. The account belongs to a former employee who should have been removed from our workspace.\n\nIP Address: 185.234.xx.xx\nLocation: Unknown (appears to be Eastern Europe)\nTime: January 14, 2025 at 3:47 AM EST\nUser: former.employee@ourcompany.com\n\nThis user was supposedly removed 2 months ago. How is this possible? We need immediate assistance to secure our account and investigate this breach.\n\nContact me immediately at +1-555-0199\n\nThomas Anderson\nCISO, SecureFinance Corp\nAccount ID: ENT-2023-0445",
+      "sentiment": 0.1,
+      "timestamp": "2025-01-14T15:00:00Z"
+    },
+    {
+      "id": 32,
+      "channel": "whatsapp",
+      "category": "technical",
+      "message": "search function not finding anything. typed exact task name still no results",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-15T08:20:00Z"
+    },
+    {
+      "id": 33,
+      "channel": "web_form",
+      "category": "general",
+      "subject": "Question about data residency",
+      "message": "We're evaluating TechCorp for enterprise use and have a question about data residency. Our company policy requires all data to be stored within the United States. Can you confirm where your data centers are located and if we can guarantee US-only data storage?",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-15T09:00:00Z"
+    },
+    {
+      "id": 34,
+      "channel": "email",
+      "category": "feedback",
+      "subject": "Suggestion: Recurring tasks feature",
+      "message": "Hello TechCorp Product Team,\n\nI've been using TechCorp for about 6 months now and it's been great for our team. One feature that would be incredibly valuable is recurring tasks. For example, weekly team meetings, monthly reports, quarterly reviews, etc.\n\nIt would be helpful to set a task to automatically recreate itself on a schedule (daily, weekly, monthly, yearly, or custom).\n\nIs this something you're considering for future releases?\n\nBest,\nLinda Garcia\nOperations Coordinator, GrowthCo",
+      "sentiment": 0.8,
+      "timestamp": "2025-01-15T10:15:00Z"
+    },
+    {
+      "id": 35,
+      "channel": "whatsapp",
+      "category": "billing",
+      "message": "payment failed but i have money in card. pls check",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-15T11:30:00Z"
+    },
+    {
+      "id": 36,
+      "channel": "web_form",
+      "category": "technical",
+      "subject": "Timezone display issues in reports",
+      "message": "The analytics reports are showing times in UTC instead of our configured timezone (PST). This is causing confusion when reviewing team activity and project timelines. Our workspace timezone is set to America/Los_Angeles but reports still show UTC. Please fix.",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-15T12:45:00Z"
+    },
+    {
+      "id": 37,
+      "channel": "email",
+      "category": "general",
+      "subject": "Partnership inquiry",
+      "message": "Dear TechCorp Business Development Team,\n\nMy name is Rachel Kim and I represent CloudSync Solutions. We provide complementary software that integrates well with project management platforms like TechCorp.\n\nWe're interested in exploring a potential partnership opportunity, possibly including:\n- Native integration development\n- Co-marketing initiatives\n- Referral program\n\nWould someone from your BD team be available for a brief call next week to discuss?\n\nBest regards,\nRachel Kim\nPartnerships Director, CloudSync Solutions\nrachel.kim@cloudsync.io\n+1-555-0234",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-15T14:00:00Z"
+    },
+    {
+      "id": 38,
+      "channel": "whatsapp",
+      "category": "bug_report",
+      "message": "app freezing when i open large projects with 500+ tasks",
+      "sentiment": 0.2,
+      "timestamp": "2025-01-15T15:20:00Z"
+    },
+    {
+      "id": 39,
+      "channel": "web_form",
+      "category": "billing",
+      "subject": "Apply educational discount",
+      "message": "Hi, I'm a professor at State University and would like to use TechCorp for my research team. I saw you offer educational discounts. How can I apply for this? What documentation do you need to verify my academic status? We have about 15 graduate students who would use the platform.",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-16T08:45:00Z"
+    },
+    {
+      "id": 40,
+      "channel": "email",
+      "category": "technical",
+      "subject": "API documentation unclear - need clarification",
+      "message": "Hello TechCorp Developer Relations,\n\nI'm working with your API and found some inconsistencies in the documentation for the /tasks endpoint.\n\nThe docs show that the 'priority' field accepts: low, medium, high\nBut when I send 'high', I get a validation error. The error message suggests the value should be an integer (1, 2, 3).\n\nCould you please clarify the correct format? Also, is there a changelog for API updates? I want to make sure I'm referencing the current version.\n\nThanks,\nKevin Nguyen\nFull Stack Developer, AppWorks\nAPI Key: tk_live_xxxxxxxxxxxx",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-16T09:30:00Z"
+    },
+    {
+      "id": 41,
+      "channel": "whatsapp",
+      "category": "general",
+      "message": "is there a student discount available?",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-16T10:15:00Z"
+    },
+    {
+      "id": 42,
+      "channel": "web_form",
+      "category": "feedback",
+      "subject": "UI improvement suggestion",
+      "message": "The current task list view could benefit from a compact mode option. When viewing projects with many tasks, I have to scroll a lot. A compact view with smaller row heights would allow seeing more tasks at once. Just a suggestion from a daily user!",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-16T11:00:00Z"
+    },
+    {
+      "id": 43,
+      "channel": "email",
+      "category": "billing",
+      "subject": "Request for extended trial",
+      "message": "Hi TechCorp Team,\n\nWe're currently on the 14-day free trial and have been evaluating the platform for our team. We're very interested but need a bit more time to complete our evaluation with all stakeholders.\n\nWould it be possible to extend our trial by another 7 days? Our trial ends on January 20th.\n\nCompany: DataDriven Analytics\nTrial Account: trial@datadriven.com\n\nThank you for considering this request.\n\nBest,\nSophia Martinez\nCOO, DataDriven Analytics",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-16T12:30:00Z"
+    },
+    {
+      "id": 44,
+      "channel": "whatsapp",
+      "category": "technical",
+      "message": "cant mention people in comments. @ symbol does nothing",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-16T13:45:00Z"
+    },
+    {
+      "id": 45,
+      "channel": "web_form",
+      "category": "general",
+      "subject": "Workspace transfer between accounts",
+      "message": "I accidentally created a workspace under my personal email but want to transfer it to our company account. Is there a way to transfer workspace ownership between different email addresses? The workspace is called 'Marketing Team 2025' and contains important project data we don't want to lose.",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-16T14:30:00Z"
+    },
+    {
+      "id": 46,
+      "channel": "email",
+      "category": "bug_report",
+      "subject": "Email notifications delayed by several hours",
+      "message": "Dear Support,\n\nWe've noticed that email notifications are being delayed significantly. Team members are receiving task assignment emails 3-4 hours after the task was actually assigned. This defeats the purpose of real-time notifications.\n\nThis started happening around January 14th. Prior to that, notifications were instant.\n\nAffected users: All 23 members of our workspace\nWorkspace: brightstar.techcorp.com\n\nPlease investigate urgently.\n\nRegards,\nDaniel Foster\nIT Manager, BrightStar Media",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-17T08:00:00Z"
+    },
+    {
+      "id": 47,
+      "channel": "whatsapp",
+      "category": "feedback",
+      "message": "been waiting for gantt chart feature! when is it launching?",
+      "sentiment": 0.8,
+      "timestamp": "2025-01-17T09:30:00Z"
+    },
+    {
+      "id": 48,
+      "channel": "web_form",
+      "category": "technical",
+      "subject": "Cannot delete project - error message",
+      "message": "Trying to delete an old project from last year but keep getting an error: 'Cannot delete project with active dependencies.' There are no active tasks in the project and no integrations connected. How do I resolve this? Project name: '2024 Archive'",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-17T10:45:00Z"
+    },
+    {
+      "id": 49,
+      "channel": "email",
+      "category": "general",
+      "subject": "Compliance documentation request",
+      "message": "Dear TechCorp Compliance Team,\n\nAs part of our vendor risk assessment process, we require the following documentation:\n\n1. SOC 2 Type II report\n2. Security whitepaper\n3. Data processing agreement (DPA)\n4. Business continuity plan summary\n\nWe're currently evaluating TechCorp for enterprise deployment. Please provide these documents at your earliest convenience.\n\nCompany: Regulated Industries Corp\nContact: compliance@regulatedcorp.com\n\nThank you,\nAndrew Bennett\nChief Compliance Officer, Regulated Industries Corp",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-17T11:30:00Z"
+    },
+    {
+      "id": 50,
+      "channel": "whatsapp",
+      "category": "billing",
+      "message": "accidentally clicked upgrade. can i downgrade back to starter?",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-17T12:15:00Z"
+    },
+    {
+      "id": 51,
+      "channel": "web_form",
+      "category": "bug_report",
+      "subject": "Export to CSV produces corrupted file",
+      "message": "When I export the task list to CSV, the downloaded file is corrupted and won't open in Excel or Google Sheets. The file size looks correct (about 50KB) but it's unreadable. I've tried multiple times with the same result. Using Windows 11 with Excel 2021.",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-17T13:00:00Z"
+    },
+    {
+      "id": 52,
+      "channel": "email",
+      "category": "feedback",
+      "subject": "Thank you for the quick bug fix!",
+      "message": "Hi TechCorp Team,\n\nJust wanted to say thanks for fixing the calendar view bug so quickly. I reported it last week and it's already resolved. This kind of responsiveness is exactly why we're happy customers.\n\nKeep up the excellent work!\n\nCheers,\nMichelle Roberts\nProject Coordinator, Swift Solutions",
+      "sentiment": 0.95,
+      "timestamp": "2025-01-17T14:00:00Z"
+    },
+    {
+      "id": 53,
+      "channel": "whatsapp",
+      "category": "general",
+      "message": "do you have api docs somewhere? wanna build custom integration",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-17T15:30:00Z"
+    },
+    {
+      "id": 54,
+      "channel": "web_form",
+      "category": "technical",
+      "subject": "Two-factor authentication setup failing",
+      "message": "I'm trying to enable 2FA on my account but the QR code won't scan properly. I've tried Google Authenticator and Authy. The code also doesn't work when I enter it manually. Getting 'Invalid code' error each time. My account is john.smith@techuser.com",
+      "sentiment": 0.4,
+      "timestamp": "2025-01-18T09:00:00Z"
+    },
+    {
+      "id": 55,
+      "channel": "email",
+      "category": "billing",
+      "subject": "LEGAL NOTICE: Unauthorized charge dispute",
+      "message": "TO WHOM IT MAY CONCERN,\n\nThis is a formal notice regarding unauthorized charges to my credit card.\n\nDespite multiple requests to cancel my subscription (tickets #4521, #4589), I continue to be charged $79/month. This is unacceptable and may constitute fraud.\n\nI demand:\n1. Immediate cancellation of my subscription\n2. Full refund of all charges since my initial cancellation request\n3. Written confirmation that no further charges will be made\n\nIf this is not resolved within 5 business days, I will:\n- File a chargeback with my credit card company\n- Report to the Better Business Bureau\n- Pursue legal action\n\nAccount: angry.customer@email.com\n\nGOVERN YOURSELF ACCORDINGLY.\n\nSteven Thompson",
+      "sentiment": 0.05,
+      "timestamp": "2025-01-18T10:30:00Z"
+    },
+    {
+      "id": 56,
+      "channel": "whatsapp",
+      "category": "technical",
+      "message": "video calls not working in the app. just shows black screen",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-18T11:45:00Z"
+    },
+    {
+      "id": 57,
+      "channel": "web_form",
+      "category": "general",
+      "subject": "Question about team limits",
+      "message": "We're on the Starter plan with 8 users currently. If we add 2 more users (total 10), will we automatically be upgraded to Growth or can we stay on Starter? Just want to understand the limits before inviting new team members.",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-18T13:00:00Z"
+    },
+    {
+      "id": 58,
+      "channel": "email",
+      "category": "technical",
+      "subject": "Performance issues during peak hours",
+      "message": "Hello TechCorp Infrastructure Team,\n\nWe've been experiencing significant performance degradation during peak hours (9-11 AM EST). Page load times increase from ~1 second to 10+ seconds, and sometimes the application times out completely.\n\nThis is affecting our entire team's productivity. We're on the Enterprise plan and expected better performance.\n\nOur workspace: enterprise-client.techcorp.com\nNumber of affected users: ~150\n\nPlease investigate and provide an update.\n\nBest regards,\nChristopher Hayes\nVP of Engineering, MegaEnterprise Inc.\nAccount ID: ENT-2024-0156",
+      "sentiment": 0.3,
+      "timestamp": "2025-01-18T14:30:00Z"
+    },
+    {
+      "id": 59,
+      "channel": "whatsapp",
+      "category": "feedback",
+      "message": "would be great if you could add keyboard shortcuts for common actions",
+      "sentiment": 0.7,
+      "timestamp": "2025-01-18T15:45:00Z"
+    },
+    {
+      "id": 60,
+      "channel": "web_form",
+      "category": "general",
+      "subject": "Blank message test",
+      "message": "",
+      "sentiment": 0.5,
+      "timestamp": "2025-01-18T16:30:00Z"
+    },
+    {
+      "id": 61,
+      "channel": "email",
+      "category": "feedback",
+      "subject": "Comprehensive feedback after 6 months of usage",
+      "message": "Dear TechCorp Product Team,\n\nI've been using TechCorp extensively for the past 6 months across multiple teams in our organization. Here's my detailed feedback:\n\nWHAT WE LOVE:\n- Intuitive interface, minimal training required\n- Excellent mobile apps\n- Reliable performance (99% uptime in our experience)\n- Great customer support response times\n- The recent dashboard redesign is fantastic\n\nAREAS FOR IMPROVEMENT:\n- Need better Gantt chart functionality\n- Custom reporting could be more flexible\n- Would like to see time tracking built-in\n- Bulk editing capabilities are limited\n- Integration with Jira could be deeper\n\nOVERALL: 8/10 - We're happy with the platform and have recommended it to partner companies. With the improvements above, it would be a 10/10.\n\nHappy to hop on a call to discuss further if helpful.\n\nBest regards,\nAmanda Foster\nDirector of Operations, ScaleUp Technologies\nGrowth Plan Customer since July 2024",
+      "sentiment": 0.75,
+      "timestamp": "2025-01-19T09:00:00Z"
+    },
+    {
+      "id": 62,
+      "channel": "whatsapp",
+      "category": "billing",
+      "message": "hey do you do black friday deals? missed it last year",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-19T10:15:00Z"
+    },
+    {
+      "id": 63,
+      "channel": "web_form",
+      "category": "technical",
+      "subject": "Permissions not working correctly for viewers",
+      "message": "We have users with 'Viewer' role but they're somehow able to edit tasks and add comments. The whole point of Viewer role is read-only access. This is a significant security concern for us as we have external stakeholders with Viewer access who shouldn't be able to modify anything.",
+      "sentiment": 0.2,
+      "timestamp": "2025-01-19T11:30:00Z"
+    },
+    {
+      "id": 64,
+      "channel": "email",
+      "category": "general",
+      "subject": "Re: Your inquiry about TechCorp",
+      "message": "Hi,\n\nI received a call from your sales team last week but didn't have time for a full demo. Could someone reach out again next week? Preferably Thursday or Friday afternoon.\n\nInterested in learning more about the Enterprise plan features, specifically around security and compliance.\n\nThanks,\nBrian Cooper\nCTO, FinServe Solutions\nbrian.cooper@finserve.com\n+1-555-0167",
+      "sentiment": 0.6,
+      "timestamp": "2025-01-19T13:00:00Z"
+    },
+    {
+      "id": 65,
+      "channel": "whatsapp",
+      "category": "bug_report",
+      "message": "WHY DOES THIS APP KEEP LOGGING ME OUT EVERY 5 MINUTES??? SO ANNOYING!!!",
+      "sentiment": 0.1,
+      "timestamp": "2025-01-19T14:20:00Z"
+    }
+  ],
+  "metadata": {
+    "total_tickets": 65,
+    "channels": {
+      "email": 22,
+      "whatsapp": 22,
+      "web_form": 21
+    },
+    "categories": {
+      "billing": 14,
+      "technical": 18,
+      "general": 15,
+      "bug_report": 10,
+      "feedback": 8
+    },
+    "generated_at": "2025-01-19T16:00:00Z",
+    "purpose": "Training and testing data for Customer Success AI FTE"
+  }
+}
