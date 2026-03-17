@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft,
   Mail,
@@ -22,7 +22,9 @@ import {
   Loader2,
   Smartphone,
   Globe,
-  RefreshCw
+  RefreshCw,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -84,6 +86,15 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [response, setResponse] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null)
+
+  // Auto-hide notification after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   useEffect(() => {
     fetchTicketData()
@@ -133,33 +144,59 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
     setSubmitting(true)
     try {
-      console.log("📤 Sending response...", { ticket_id: ticket.id, message: response })
+      console.log("📤 Sending response...", { ticket_id: unwrappedParams.id, message: response })
       
+      // First update status to IN_PROGRESS
+      await fetch("http://localhost:8000/api/tickets/status", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticket_id: unwrappedParams.id,
+          status: "IN_PROGRESS"
+        })
+      })
+      
+      // Then send the response
       const responsePayload = await fetch("http://localhost:8000/api/tickets/response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ticket_id: unwrappedParams.id, // Use the actual ID from URL
+          ticket_id: unwrappedParams.id,
           message: response,
           sender: "AGENT"
         })
       })
 
-      console.log("📥 Response status:", responsePayload.status)
-
       if (responsePayload.ok) {
         const data = await responsePayload.json()
         console.log("✅ Response sent:", data)
+        
+        // Show success notification
+        setNotification({
+          type: 'success',
+          message: '✅ Response sent successfully! Status updated to In Progress.'
+        })
+        
         setResponse("")
-        await fetchTicketData()
+        
+        // Wait 2 seconds then redirect to tickets page
+        setTimeout(() => {
+          router.push("/dashboard/tickets")
+        }, 2000)
       } else {
         const errorData = await responsePayload.json()
         console.error("❌ Error sending response:", errorData)
-        alert("Failed to send response: " + (errorData.error || "Unknown error"))
+        setNotification({
+          type: 'error',
+          message: '❌ Failed to send response: ' + (errorData.error || "Unknown error")
+        })
       }
     } catch (error) {
       console.error("Error sending response:", error)
-      alert("Error sending response: " + (error as Error).message)
+      setNotification({
+        type: 'error',
+        message: '❌ Error: ' + (error as Error).message
+      })
     } finally {
       setSubmitting(false)
     }
@@ -175,7 +212,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ticket_id: unwrappedParams.id, // Use the actual ID from URL
+          ticket_id: unwrappedParams.id,
           status: newStatus
         })
       })
@@ -183,15 +220,25 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       if (response.ok) {
         const data = await response.json()
         console.log("✅ Status updated:", data)
+        setNotification({
+          type: 'success',
+          message: `✅ Status updated to ${newStatus.replace('_', ' ')}!`
+        })
         await fetchTicketData()
       } else {
         const errorData = await response.json()
         console.error("❌ Error updating status:", errorData)
-        alert("Failed to update status: " + (errorData.error || "Unknown error"))
+        setNotification({
+          type: 'error',
+          message: '❌ Failed to update status: ' + (errorData.error || "Unknown error")
+        })
       }
     } catch (error) {
       console.error("Error updating status:", error)
-      alert("Error updating status: " + (error as Error).message)
+      setNotification({
+        type: 'error',
+        message: '❌ Error: ' + (error as Error).message
+      })
     }
   }
 
@@ -289,6 +336,31 @@ TechCorp Support Team`
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
+      {/* Notification Toast */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -50, x: "-50%" }}
+            className={`fixed top-4 left-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-xl border ${
+              notification.type === 'success'
+                ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-500/20 border-red-500/30 text-red-400'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {notification.type === 'success' ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <AlertCircle className="h-5 w-5" />
+              )}
+              <span className="font-medium">{notification.message}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -601,27 +673,27 @@ TechCorp Support Team`
               <div className="pt-4 border-t border-white/10">
                 <div className="text-sm text-muted-foreground mb-2">Quick Actions</div>
                 <div className="space-y-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full justify-start border-white/10 hover:bg-white/5"
                     onClick={() => handleStatusUpdate("IN_PROGRESS")}
                   >
                     <Clock className="h-4 w-4 mr-2" />
                     Mark In Progress
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full justify-start border-white/10 hover:bg-white/5"
-                    onClick={() => handleStatusUpdate("PENDING")}
+                    onClick={() => handleStatusUpdate("RESOLVED")}
                   >
-                    <Clock className="h-4 w-4 mr-2" />
-                    Mark Pending
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Resolve Ticket
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full justify-start border-white/10 hover:bg-white/5"
                     onClick={() => handleStatusUpdate("OPEN")}
                   >

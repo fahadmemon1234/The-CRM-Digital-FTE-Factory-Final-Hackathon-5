@@ -802,29 +802,45 @@ async def send_ticket_response(response_data: TicketResponse):
         return {"error": str(e)}
 
 
+class StatusUpdate(BaseModel):
+    ticket_id: str
+    status: str
+
 @router.put("/tickets/status")
-async def update_ticket_status(ticket_id: str, status: str):
+async def update_ticket_status(status_data: StatusUpdate):
     """Update ticket status."""
     try:
         pool = await get_db_pool()
 
         async with pool.acquire() as conn:
-            # Try direct ID match first
+            # Convert status to uppercase for database
+            status_upper = status_data.status.upper()
+            
+            # Extract the short ID from TKT-XXX format
+            clean_id = status_data.ticket_id.replace("TKT-", "").upper()
+            
+            print(f"Updating status for ticket: {status_data.ticket_id}, clean ID: {clean_id}")
+            
+            # Try searching by subject (which contains the short ID)
             result = await conn.execute("""
                 UPDATE tickets SET status = $1, updated_at = NOW()
-                WHERE id = $2
-            """, status.upper(), ticket_id)
-
-            # If no rows updated, try searching by subject
+                WHERE UPPER(subject) LIKE $2
+            """, status_upper, f"%{clean_id}%")
+            
+            print(f"Rows updated: {result}")
+            
+            # If no rows updated, try direct ID match
             if result == "UPDATE 0":
-                clean_id = ticket_id.replace("TKT-", "").upper()
-                await conn.execute("""
+                result = await conn.execute("""
                     UPDATE tickets SET status = $1, updated_at = NOW()
-                    WHERE subject ILIKE $2
-                """, status.upper(), f"%{clean_id}%")
+                    WHERE id::text ILIKE $2
+                """, status_upper, f"%{clean_id}%")
+                print(f"Direct ID match rows: {result}")
 
-            return {"success": True, "message": f"Status updated to {status}"}
+            return {"success": True, "message": f"Status updated to {status_data.status}"}
 
     except Exception as e:
         print(f"Error in update_ticket_status: {e}")
+        import traceback
+        traceback.print_exc()
         return {"error": str(e)}
