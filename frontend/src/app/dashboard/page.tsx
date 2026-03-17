@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import {
   Ticket,
@@ -12,7 +13,8 @@ import {
   Mail,
   Smartphone,
   Zap,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -30,65 +32,39 @@ import {
   Bar,
   Cell
 } from "recharts"
+import {
+  fetchTickets,
+  fetchDashboardStats,
+  fetchChannelStats,
+  fetchCategoryStats,
+  fetchActivityData,
+  getRelativeTime,
+  type Ticket as TicketType,
+  type DashboardStats,
+  type ChannelStats,
+  type CategoryStats,
+  type ActivityData
+} from "@/lib/api"
 
-const statsData = [
-  {
-    title: "Total Tickets",
-    value: "2,847",
-    change: "+12.5%",
-    trend: "up",
-    icon: Ticket,
-    color: "#06b6d4"
-  },
-  {
-    title: "Resolved",
-    value: "2,456",
-    change: "+8.2%",
-    trend: "up",
-    icon: CheckCircle2,
-    color: "#10b981"
-  },
-  {
-    title: "Pending",
-    value: "312",
-    change: "-3.1%",
-    trend: "down",
-    icon: Clock,
-    color: "#f59e0b"
-  },
-  {
-    title: "Avg Response Time",
-    value: "2.4m",
-    change: "-18.3%",
-    trend: "down",
-    icon: TrendingUp,
-    color: "#8b5cf6"
-  }
-]
+const channelIcons: Record<string, any> = {
+  Email: Mail,
+  WhatsApp: Smartphone,
+  "Web Form": MessageSquare
+}
 
-const ticketsByChannel = [
-  { name: "Email", count: 1247, icon: Mail, color: "#06b6d4" },
-  { name: "WhatsApp", count: 892, icon: Smartphone, color: "#10b981" },
-  { name: "Web Form", count: 708, icon: MessageSquare, color: "#8b5cf6" }
-]
+const channelColors: Record<string, string> = {
+  Email: "#06b6d4",
+  WhatsApp: "#10b981",
+  "Web Form": "#8b5cf6"
+}
 
-const activityData = [
-  { time: "00:00", tickets: 45, resolved: 38 },
-  { time: "04:00", tickets: 32, resolved: 28 },
-  { time: "08:00", tickets: 128, resolved: 115 },
-  { time: "12:00", tickets: 256, resolved: 234 },
-  { time: "16:00", tickets: 198, resolved: 187 },
-  { time: "20:00", tickets: 89, resolved: 82 },
-  { time: "23:59", tickets: 52, resolved: 48 }
-]
-
-const categoryData = [
-  { name: "Technical", value: 45, color: "#06b6d4" },
-  { name: "Billing", value: 28, color: "#10b981" },
-  { name: "General", value: 15, color: "#8b5cf6" },
-  { name: "Bug Report", value: 8, color: "#f59e0b" },
-  { name: "Feedback", value: 4, color: "#ec4899" }
-]
+const categoryColors: Record<string, string> = {
+  Technical: "#06b6d4",
+  Billing: "#10b981",
+  General: "#8b5cf6",
+  "Bug Report": "#f59e0b",
+  Feedback: "#ec4899"
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -112,6 +88,70 @@ const itemVariants = {
 }
 
 export default function DashboardPage() {
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<DashboardStats>({
+    totalTickets: 0,
+    resolvedTickets: 0,
+    pendingTickets: 0,
+    avgResponseTime: "0m"
+  })
+  const [channelStats, setChannelStats] = useState<ChannelStats[]>([])
+  const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([])
+  const [recentTickets, setRecentTickets] = useState<TicketType[]>([])
+  const [activityData, setActivityData] = useState<ActivityData[]>([])
+
+  useEffect(() => {
+    loadDashboardData()
+    // Refresh data every 30 seconds
+    const interval = setInterval(loadDashboardData, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+
+      // Fetch all data in parallel
+      const [tickets, dashboardStats, channels, categories, activity] = await Promise.all([
+        fetchTickets(50, 0),
+        fetchDashboardStats(),
+        fetchChannelStats(),
+        fetchCategoryStats(),
+        fetchActivityData()
+      ])
+
+      console.log('Dashboard data loaded:', {
+        tickets,
+        dashboardStats,
+        channels,
+        categories,
+        activity
+      })
+
+      // Set stats
+      setStats(dashboardStats)
+      setChannelStats(channels)
+      setCategoryStats(categories)
+      setActivityData(activity)
+      setRecentTickets(tickets.slice(0, 10))
+
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, any> = {
+      OPEN: { variant: "info" as const, label: "Open" },
+      IN_PROGRESS: { variant: "warning" as const, label: "In Progress" },
+      RESOLVED: { variant: "success" as const, label: "Resolved" },
+      PENDING: { variant: "warning" as const, label: "Pending" }
+    }
+    return statusMap[status.toUpperCase()] || { variant: "info" as const, label: status }
+  }
+
   return (
     <motion.div
       initial="hidden"
@@ -126,50 +166,111 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="mt-0.5 text-xs text-neutral-400 lg:text-sm">
-            Welcome back! Here&apos;s what&apos;s happening today.
+            {loading ? 'Loading real-time data...' : 'Real-time data from database'}
           </p>
         </div>
-        <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 backdrop-blur-xl text-xs px-3 py-1.5">
-          <CheckCircle2 className="mr-1 h-3 w-3" />
-          All Systems Operational
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 backdrop-blur-xl text-xs px-3 py-1.5">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Database Connected
+          </Badge>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={loadDashboardData}
+            disabled={loading}
+            className="h-8 px-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </motion.div>
 
       {/* Stats Grid */}
       <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statsData.map((stat) => (
-          <motion.div
-            key={stat.title}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Card className="relative overflow-hidden border border-neutral-700/30 bg-neutral-900/40 backdrop-blur-md hover:border-neutral-600/50 transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-medium uppercase tracking-wide text-neutral-400">
-                  {stat.title}
-                </CardTitle>
-                <div
-                  className="rounded-lg p-2"
-                  style={{ backgroundColor: `${stat.color}15` }}
-                >
-                  <stat.icon className="h-4 w-4" style={{ color: stat.color }} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold tracking-tight text-white">{stat.value}</div>
-                <div className="mt-2 flex items-center">
-                  {stat.trend === "up" ? (
-                    <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
-                  ) : (
-                    <ArrowDownRight className="h-3.5 w-3.5 text-emerald-400" />
-                  )}
-                  <span className="ml-1 text-xs font-medium text-emerald-400">{stat.change}</span>
-                  <span className="ml-1 text-xs text-neutral-500">vs last month</span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+        <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+          <Card className="relative overflow-hidden border border-neutral-700/30 bg-neutral-900/40 backdrop-blur-md hover:border-neutral-600/50 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                Total Tickets
+              </CardTitle>
+              <div className="rounded-lg p-2" style={{ backgroundColor: '#06b6d415' }}>
+                <Ticket className="h-4 w-4" style={{ color: '#06b6d4' }} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-white">
+                {loading ? '-' : stats.totalTickets.toLocaleString()}
+              </div>
+              <div className="mt-2 flex items-center">
+                <span className="ml-1 text-xs text-neutral-500">From database</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+          <Card className="relative overflow-hidden border border-neutral-700/30 bg-neutral-900/40 backdrop-blur-md hover:border-neutral-600/50 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                Resolved
+              </CardTitle>
+              <div className="rounded-lg p-2" style={{ backgroundColor: '#10b98115' }}>
+                <CheckCircle2 className="h-4 w-4" style={{ color: '#10b981' }} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-white">
+                {loading ? '-' : stats.resolvedTickets.toLocaleString()}
+              </div>
+              <div className="mt-2 flex items-center">
+                <span className="ml-1 text-xs text-neutral-500">Successfully resolved</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+          <Card className="relative overflow-hidden border border-neutral-700/30 bg-neutral-900/40 backdrop-blur-md hover:border-neutral-600/50 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                Pending
+              </CardTitle>
+              <div className="rounded-lg p-2" style={{ backgroundColor: '#f59e0b15' }}>
+                <Clock className="h-4 w-4" style={{ color: '#f59e0b' }} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-white">
+                {loading ? '-' : stats.pendingTickets.toLocaleString()}
+              </div>
+              <div className="mt-2 flex items-center">
+                <span className="ml-1 text-xs text-neutral-500">Awaiting response</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
+          <Card className="relative overflow-hidden border border-neutral-700/30 bg-neutral-900/40 backdrop-blur-md hover:border-neutral-600/50 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                Avg Response Time
+              </CardTitle>
+              <div className="rounded-lg p-2" style={{ backgroundColor: '#8b5cf615' }}>
+                <TrendingUp className="h-4 w-4" style={{ color: '#8b5cf6' }} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-white">
+                {loading ? '-' : stats.avgResponseTime}
+              </div>
+              <div className="mt-2 flex items-center">
+                <span className="ml-1 text-xs text-neutral-500">Average time</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
 
       {/* Charts Row */}
@@ -188,50 +289,57 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={activityData}>
-                <defs>
-                  <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.5} />
-                <XAxis dataKey="time" stroke="#525252" fontSize={11} />
-                <YAxis stroke="#525252" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'rgba(23, 23, 23, 0.95)',
-                    border: '1px solid rgba(63, 63, 63, 0.5)',
-                    borderRadius: '8px',
-                    backdropFilter: 'blur(12px)'
-                  }}
-                  labelStyle={{ color: '#a3a3a3' }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="tickets"
-                  stroke="#06b6d4"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorTickets)"
-                  name="Tickets"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="resolved"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorResolved)"
-                  name="Resolved"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {loading || activityData.length === 0 ? (
+              <div className="h-[300px] flex items-center justify-center text-neutral-500">
+                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                Loading data...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={activityData}>
+                  <defs>
+                    <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.5} />
+                  <XAxis dataKey="time" stroke="#525252" fontSize={11} />
+                  <YAxis stroke="#525252" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(23, 23, 23, 0.95)',
+                      border: '1px solid rgba(63, 63, 63, 0.5)',
+                      borderRadius: '8px',
+                      backdropFilter: 'blur(12px)'
+                    }}
+                    labelStyle={{ color: '#a3a3a3' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="tickets"
+                    stroke="#06b6d4"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorTickets)"
+                    name="Tickets"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="resolved"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorResolved)"
+                    name="Resolved"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -249,26 +357,33 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={categoryData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.5} />
-                <XAxis type="number" stroke="#525252" fontSize={11} hide />
-                <YAxis dataKey="name" type="category" stroke="#737373" fontSize={10} width={90} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'rgba(23, 23, 23, 0.95)',
-                    border: '1px solid rgba(63, 63, 63, 0.5)',
-                    borderRadius: '8px',
-                    backdropFilter: 'blur(12px)'
-                  }}
-                />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {loading || categoryStats.length === 0 ? (
+              <div className="h-[250px] flex items-center justify-center text-neutral-500">
+                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                Loading...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={categoryStats} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" opacity={0.5} />
+                  <XAxis type="number" stroke="#525252" fontSize={11} hide />
+                  <YAxis dataKey="name" type="category" stroke="#737373" fontSize={10} width={90} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(23, 23, 23, 0.95)',
+                      border: '1px solid rgba(63, 63, 63, 0.5)',
+                      borderRadius: '8px',
+                      backdropFilter: 'blur(12px)'
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {categoryStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={categoryColors[entry.name] || "#8b5cf6"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -288,30 +403,41 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              {ticketsByChannel.map((channel) => (
-                <motion.div
-                  key={channel.name}
-                  whileHover={{ scale: 1.02 }}
-                  className="flex cursor-pointer items-center gap-4 rounded-xl border border-neutral-700/30 bg-neutral-800/30 p-4 transition-all duration-300 hover:bg-neutral-800/50 hover:border-neutral-600/50 group"
-                >
-                  <div
-                    className="rounded-lg p-3 transition-transform group-hover:scale-110"
-                    style={{ backgroundColor: `${channel.color}15` }}
-                  >
-                    <channel.icon className="h-6 w-6" style={{ color: channel.color }} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-neutral-300">{channel.name}</p>
-                    <p className="text-2xl font-bold text-white">{channel.count.toLocaleString()}</p>
-                    <p className="text-xs text-neutral-500">
-                      {((channel.count / 2847) * 100).toFixed(1)}% of total
-                    </p>
-                  </div>
-                  <ArrowUpRight className="h-5 w-5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </motion.div>
-              ))}
-            </div>
+            {loading || channelStats.length === 0 ? (
+              <div className="h-[100px] flex items-center justify-center text-neutral-500">
+                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                Loading...
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                {channelStats.map((channel) => {
+                  const Icon = channelIcons[channel.name] || MessageSquare
+                  const color = channelColors[channel.name] || "#8b5cf6"
+                  return (
+                    <motion.div
+                      key={channel.name}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex cursor-pointer items-center gap-4 rounded-xl border border-neutral-700/30 bg-neutral-800/30 p-4 transition-all duration-300 hover:bg-neutral-800/50 hover:border-neutral-600/50 group"
+                    >
+                      <div
+                        className="rounded-lg p-3 transition-transform group-hover:scale-110"
+                        style={{ backgroundColor: `${color}15` }}
+                      >
+                        <Icon className="h-6 w-6" style={{ color: color }} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-neutral-300">{channel.name}</p>
+                        <p className="text-2xl font-bold text-white">{channel.count.toLocaleString()}</p>
+                        <p className="text-xs text-neutral-500">
+                          {channel.percentage.toFixed(1)}% of total
+                        </p>
+                      </div>
+                      <ArrowUpRight className="h-5 w-5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -323,47 +449,73 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base font-semibold text-white">Recent Tickets</CardTitle>
-                <CardDescription className="text-xs text-neutral-400">Latest support requests</CardDescription>
+                <CardDescription className="text-xs text-neutral-400">Latest support requests from database</CardDescription>
               </div>
-              <Button variant="ghost" className="text-xs hover:bg-neutral-800">
-                View All
+              <Button variant="ghost" className="text-xs hover:bg-neutral-800" onClick={loadDashboardData}>
+                Refresh
                 <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  whileHover={{ x: 4, backgroundColor: "rgba(38, 38, 38, 0.5)" }}
-                  className="flex cursor-pointer items-center gap-4 rounded-xl p-3 transition-all duration-200 hover:bg-neutral-800/50 group"
-                >
-                  <Avatar className="h-9 w-9 border border-neutral-700/50">
-                    <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-indigo-600 text-xs font-medium text-white">
-                      U{i}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-neutral-200">
-                      Issue with {["file upload", "payment processing", "account access", "API integration", "mobile app"][i - 1]}
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      User {i} • {["Email", "WhatsApp", "Web Form", "Email", "WhatsApp"][i - 1]} • {i * 15}m ago
-                    </p>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center gap-4 rounded-xl p-3 animate-pulse">
+                    <div className="h-9 w-9 rounded-full bg-neutral-800" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-neutral-800 rounded w-3/4" />
+                      <div className="h-3 bg-neutral-800 rounded w-1/2" />
+                    </div>
                   </div>
-                  <Badge
-                    variant={["info", "warning", "success", "info", "warning"][i - 1] as any}
-                    className="bg-neutral-800/50 text-xs border-neutral-700/50"
-                  >
-                    {["Pending", "In Progress", "Resolved", "Pending", "In Progress"][i - 1]}
-                  </Badge>
-                </motion.div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : recentTickets.length === 0 ? (
+              <div className="text-center py-8 text-neutral-500">
+                <Ticket className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No tickets found</p>
+                <p className="text-xs">Send an email or WhatsApp message to create tickets</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentTickets.map((ticket, i) => {
+                  const statusBadge = getStatusBadge(ticket.status)
+                  const customerName = ticket.customer_name || ticket.customer_email || `User ${i + 1}`
+                  const channel = ticket.channel || 'web_form'
+                  
+                  return (
+                    <motion.div
+                      key={ticket.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      whileHover={{ x: 4, backgroundColor: "rgba(38, 38, 38, 0.5)" }}
+                      className="flex cursor-pointer items-center gap-4 rounded-xl p-3 transition-all duration-200 hover:bg-neutral-800/50 group"
+                    >
+                      <Avatar className="h-9 w-9 border border-neutral-700/50">
+                        <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-indigo-600 text-xs font-medium text-white">
+                          {customerName.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-neutral-200">
+                          {ticket.category || 'General Inquiry'} - {customerName}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          {channel} • {getRelativeTime(ticket.time)}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={statusBadge.variant}
+                        className="bg-neutral-800/50 text-xs border-neutral-700/50"
+                      >
+                        {statusBadge.label}
+                      </Badge>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

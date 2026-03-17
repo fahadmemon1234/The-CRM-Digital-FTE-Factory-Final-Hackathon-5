@@ -49,14 +49,25 @@ const statusConfig: Record<string, { badge: any, label: string }> = {
   pending: { badge: "info", label: "Pending" },
   in_progress: { badge: "warning", label: "In Progress" },
   resolved: { badge: "success", label: "Resolved" },
-  escalated: { badge: "destructive", label: "Escalated" }
+  escalated: { badge: "destructive", label: "Escalated" },
+  // Uppercase variants
+  OPEN: { badge: "info", label: "Open" },
+  PENDING: { badge: "info", label: "Pending" },
+  IN_PROGRESS: { badge: "warning", label: "In Progress" },
+  RESOLVED: { badge: "success", label: "Resolved" },
+  ESCALATED: { badge: "destructive", label: "Escalated" }
 }
 
 const priorityConfig: Record<string, { color: string, label: string }> = {
   low: { color: "text-blue-400", label: "Low" },
   medium: { color: "text-amber-400", label: "Medium" },
   high: { color: "text-orange-400", label: "High" },
-  critical: { color: "text-red-400", label: "Critical" }
+  critical: { color: "text-red-400", label: "Critical" },
+  // Uppercase variants
+  LOW: { color: "text-blue-400", label: "Low" },
+  MEDIUM: { color: "text-amber-400", label: "Medium" },
+  HIGH: { color: "text-orange-400", label: "High" },
+  CRITICAL: { color: "text-red-400", label: "Critical" }
 }
 
 const containerVariants = {
@@ -114,26 +125,50 @@ export default function TicketsPage() {
           'Accept': 'application/json',
         },
       })
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const data = await response.json()
       console.log('Tickets data:', data)
       setTickets(data.tickets || [])
-      
-      // Update stats from data
-      const pending = data.tickets?.filter((t: Ticket) => t.status === 'open' || t.status === 'pending').length || 0
-      const inProgress = data.tickets?.filter((t: Ticket) => t.status === 'in_progress').length || 0
-      const resolved = data.tickets?.filter((t: Ticket) => t.status === 'resolved').length || 0
-      
-      setStats({
-        pending,
-        inProgress,
-        resolved,
-        avgResponse: '2.4m'
+
+      // Fetch stats from API endpoint for accuracy
+      const statsResponse = await fetch('http://localhost:8000/api/tickets/stats', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
       })
+      
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        setStats({
+          pending: statsData.pending || 0,
+          inProgress: statsData.in_progress || 0,
+          resolved: statsData.resolved || 0,
+          avgResponse: statsData.avg_response || '2.4m'
+        })
+      } else {
+        // Fallback to calculating from tickets data
+        const pending = data.tickets?.filter((t: Ticket) => 
+          t.status?.toUpperCase() === 'OPEN' || t.status?.toUpperCase() === 'PENDING'
+        ).length || 0
+        const inProgress = data.tickets?.filter((t: Ticket) => 
+          t.status?.toUpperCase() === 'IN_PROGRESS'
+        ).length || 0
+        const resolved = data.tickets?.filter((t: Ticket) => 
+          t.status?.toUpperCase() === 'RESOLVED'
+        ).length || 0
+
+        setStats({
+          pending,
+          inProgress,
+          resolved,
+          avgResponse: '2.4m'
+        })
+      }
     } catch (error) {
       console.error('Error fetching tickets:', error)
       // Set empty array on error
@@ -152,7 +187,7 @@ export default function TicketsPage() {
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          ticket.customer.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = filterStatus === "all" || ticket.status === filterStatus
+    const matchesStatus = filterStatus === "all" || ticket.status?.toUpperCase() === filterStatus.toUpperCase()
     const matchesChannel = filterChannel === "all" || ticket.channel === filterChannel
     return matchesSearch && matchesStatus && matchesChannel
   })
@@ -348,7 +383,9 @@ export default function TicketsPage() {
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <ChannelIcon className="h-3 w-3" />
-                            {ticket.channel === "web_form" ? "Web Form" : ticket.channel}
+                            {ticket.channel === "web_form" ? "Web Form" : 
+                             ticket.channel === "gmail" ? "Email" :
+                             ticket.channel?.charAt(0).toUpperCase() + ticket.channel?.slice(1)}
                           </span>
                           <span>•</span>
                           <span>{ticket.customer}</span>

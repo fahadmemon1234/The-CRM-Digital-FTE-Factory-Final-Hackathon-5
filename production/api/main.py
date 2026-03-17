@@ -319,7 +319,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
                     VALUES ($1, $2, $3, $4, NOW())
                 """, str(customer_id), from_number, f"whatsapp_{from_number[-4:]}@temp.local", f"WhatsApp User {from_number[-4:]}")
             else:
-                customer_id = customer['id']  # Keep as UUID object from DB
+                customer_id = str(customer['id'])  # Convert to string for VARCHAR(36)
 
             # Create ticket - use same pattern as /support/submit
             db_category = "GENERAL_INQUIRY"
@@ -393,6 +393,182 @@ async def send_whatsapp_reply(to_number: str, ticket_id: str, user_message: str)
 
     except Exception as e:
         print(f"[WhatsApp Reply] Failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+@app.post("/webhooks/email")
+async def email_webhook(request: Request, background_tasks: BackgroundTasks):
+    """
+    Email webhook endpoint - receives emails and sends auto-reply.
+    
+    For Gmail: Use Gmail API push notifications or forwarding rules
+    For generic: Configure email server to POST to this endpoint
+    """
+    import uuid as uuid_module
+    import base64
+    from email.mime.text import MIMEText
+    
+    try:
+        # Parse request body
+        body_data = await request.json()
+        
+        # Extract email data (adjust based on your email service format)
+        from_email = body_data.get('from', body_data.get('From', ''))
+        subject = body_data.get('subject', body_data.get('Subject', 'No Subject'))
+        email_body = body_data.get('body', body_data.get('Body', body_data.get('text', '')))
+        message_id = body_data.get('message_id', body_data.get('MessageId', ''))
+        
+        # For Gmail API format
+        if 'data' in body_data:
+            # Decode Gmail base64 encoded message
+            try:
+                decoded_data = base64.urlsafe_b64decode(body_data['data']).decode('utf-8')
+                # Parse if it's a full email
+                if 'From:' in decoded_data:
+                    for line in decoded_data.split('\n'):
+                        if line.startswith('From:'):
+                            from_email = line.replace('From:', '').strip()
+                        elif line.startswith('Subject:'):
+                            subject = line.replace('Subject:', '').strip()
+                        elif line.strip() and email_body == '':
+                            email_body = line.strip()
+            except:
+                pass
+        
+        print(f"[Email Webhook] From: {from_email}")
+        print(f"[Email Webhook] Subject: {subject}")
+        print(f"[Email Webhook] Body: {email_body[:100]}...")
+        
+        if not from_email or not email_body:
+            return {"status": "ignored", "reason": "No email body or from address"}
+        
+        # Create ticket from email
+        pool = await get_db_pool()
+        ticket_uuid = uuid_module.uuid4()
+        ticket_id = f"TKT-{ticket_uuid.hex[:8].upper()}"
+        customer_id = None
+        
+        async with pool.acquire() as conn:
+            # Find or create customer by email
+            customer = await conn.fetchrow(
+                "SELECT id FROM customers WHERE email = $1",
+                from_email
+            )
+
+            if not customer:
+                # Generate a UUID for customer ID
+                customer_id = uuid_module.uuid4()
+                await conn.execute("""
+                    INSERT INTO customers (id, email, name, created_at)
+                    VALUES ($1, $2, $3, NOW())
+                """, str(customer_id), from_email, from_email.split('@')[0])
+            else:
+                customer_id = str(customer['id'])  # Convert to string for VARCHAR(36)
+
+            # Create ticket
+            db_category = "GENERAL_INQUIRY"
+            db_status = "OPEN"
+            db_priority = "MEDIUM"
+
+            await conn.execute("""
+                INSERT INTO tickets (
+                    id, customer_id, subject, source_channel, category,
+                    status, priority, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            """, str(ticket_uuid), customer_id, subject, "email",
+                db_category, db_status, db_priority)
+            
+            print(f"[Email Webhook] Ticket created: {ticket_id}")
+        
+        # Send auto-reply via Gmail
+        background_tasks.add_task(send_email_reply, from_email, ticket_id, subject, email_body)
+        
+        return {
+            "status": "received",
+            "ticket_id": ticket_id,
+            "message_id": message_id
+        }
+
+    except Exception as e:
+        # Encode error message to handle Unicode
+        error_msg = str(e).encode('ascii', 'ignore').decode('ascii')
+        print(f"[Email Webhook] Error: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": error_msg}
+
+
+async def send_email_reply(to_email: str, ticket_id: str, original_subject: str, user_message: str):
+    """
+    Send email reply using Gmail API.
+    Runs in background to not block webhook response.
+    """
+    from google.oauth2 import credentials
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    import base64
+    
+    try:
+        # Get Gmail credentials from environment
+        client_id = os.getenv('GMAIL_CLIENT_ID')
+        client_secret = os.getenv('GMAIL_CLIENT_SECRET')
+        refresh_token = os.getenv('GMAIL_REFRESH_TOKEN')
+        
+        if not all([client_id, client_secret, refresh_token]):
+            print("[Email Reply] Error: Gmail credentials not configured")
+            return
+        
+        # Create credentials from refresh token
+        creds = credentials.Credentials(
+            None,
+            client_id=client_id,
+            client_secret=client_secret,
+            token_uri="https://oauth2.googleapis.com/token",
+            refresh_token=refresh_token
+        )
+        
+        # Build Gmail service
+        service = build('gmail', 'v1', credentials=creds)
+        
+        # Create auto-reply message
+        reply_subject = f"Re: {original_subject}"
+        reply_body = (
+            f"Hello,\n\n"
+            f"Thank you for contacting TechCorp Support!\n\n"
+            f"Your ticket ID is: *{ticket_id}*\n\n"
+            f"We've received your message regarding:\n\"{original_subject}\"\n\n"
+            f"Original message:\n\"{user_message[:200]}{'...' if len(user_message) > 200 else ''}\"\n\n"
+            f"Our AI assistant is reviewing your request and will respond within 5-10 minutes.\n\n"
+            f"Need immediate help? Visit: https://techcorp.com/support\n\n"
+            f"Best regards,\n"
+            f"TechCorp Support Team\n"
+            f"Ticket ID: {ticket_id}"
+        )
+        
+        # Create MIME message
+        message = MIMEText(reply_body)
+        message['to'] = to_email
+        message['from'] = 'TechCorp Support <support@techcorp.com>'
+        message['subject'] = reply_subject
+        
+        # Encode message
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+        
+        # Send message via Gmail API
+        sent_message = service.users().messages().send(
+            userId='me',
+            body={'raw': raw_message}
+        ).execute()
+        
+        print(f"[Email Reply] Sent to {to_email}, Message ID: {sent_message['id']}")
+        
+    except HttpError as error:
+        print(f"[Email Reply] Gmail API error: {error}")
+        import traceback
+        traceback.print_exc()
+    except Exception as e:
+        print(f"[Email Reply] Failed: {e}")
         import traceback
         traceback.print_exc()
 
