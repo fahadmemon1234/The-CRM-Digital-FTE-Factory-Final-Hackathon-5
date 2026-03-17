@@ -60,19 +60,38 @@ export default function NewTicketModal({ open, onOpenChange }: NewTicketModalPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Generate random ticket ID
-    const newTicketId = `TKT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-    setTicketId(newTicketId)
-    setSubmitted(true)
-    setIsLoading(false)
-    
-    // Reset after 3 seconds
-    setTimeout(() => {
-      setSubmitted(false)
+
+    try {
+      console.log("📤 Creating ticket from modal...", formData)
+
+      // Call actual API endpoint with correct channel
+      const response = await fetch("http://localhost:8000/support/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.customerName,
+          email: formData.customerEmail,
+          subject: formData.subject,
+          category: formData.category.toLowerCase(),
+          message: formData.message,
+          channel: formData.channel // Send selected channel
+        })
+      })
+
+      console.log("📥 Response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || "Failed to create ticket")
+      }
+
+      const data = await response.json()
+      console.log("✅ Ticket created:", data)
+
+      setTicketId(data.ticket_id)
+      setSubmitted(true)
+      
+      // Reset form data immediately after success
       setFormData({
         customerName: "",
         customerEmail: "",
@@ -83,8 +102,21 @@ export default function NewTicketModal({ open, onOpenChange }: NewTicketModalPro
         priority: "medium",
         message: ""
       })
-      onOpenChange(false)
-    }, 3000)
+      
+      // Close modal after 3 seconds and trigger page refresh
+      setTimeout(() => {
+        setSubmitted(false)
+        onOpenChange(false)
+        // Trigger a custom event to refresh tickets
+        window.dispatchEvent(new CustomEvent('tickets-updated'))
+      }, 3000)
+      
+    } catch (error) {
+      console.error("❌ Error creating ticket:", error)
+      alert("Failed to create ticket: " + (error as Error).message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const updateField = (field: keyof TicketFormData, value: string) => {

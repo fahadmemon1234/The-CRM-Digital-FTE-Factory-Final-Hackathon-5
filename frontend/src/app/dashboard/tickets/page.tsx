@@ -114,6 +114,18 @@ export default function TicketsPage() {
   // Fetch tickets from backend
   useEffect(() => {
     fetchTickets()
+    
+    // Listen for tickets-updated event
+    const handleTicketsUpdated = () => {
+      console.log('🔄 Tickets updated event received, refreshing...')
+      fetchTickets()
+    }
+    
+    window.addEventListener('tickets-updated', handleTicketsUpdated)
+    
+    return () => {
+      window.removeEventListener('tickets-updated', handleTicketsUpdated)
+    }
   }, [])
 
   const fetchTickets = async () => {

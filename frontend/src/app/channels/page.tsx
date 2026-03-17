@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
-import { CheckCircle, Loader2, ArrowLeft, Mail, Smartphone, Globe, TrendingUp } from "lucide-react"
+import { CheckCircle, Loader2, ArrowLeft, Mail, Smartphone, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,17 +17,39 @@ const CATEGORIES = [
   { value: "FEATURE_REQUEST", label: "Feature Request" }
 ]
 
-interface ChannelStats {
-  name: string
-  count: number
-  percentage: number
-}
+const CHANNELS = [
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    icon: Smartphone,
+    color: "from-green-500 to-emerald-500",
+    bgColor: "bg-green-500/10",
+    borderColor: "border-green-500/30",
+    description: "Get support via WhatsApp"
+  },
+  {
+    id: "email",
+    name: "Email",
+    icon: Mail,
+    color: "from-blue-500 to-cyan-500",
+    bgColor: "bg-blue-500/10",
+    borderColor: "border-blue-500/30",
+    description: "Receive response via email"
+  },
+  {
+    id: "web_form",
+    name: "Web Form",
+    icon: Globe,
+    color: "from-purple-500 to-pink-500",
+    bgColor: "bg-purple-500/10",
+    borderColor: "border-purple-500/30",
+    description: "Submit via web form"
+  }
+]
 
 export default function ChannelsPage() {
   const router = useRouter()
   const [selectedChannel, setSelectedChannel] = useState<string>("web_form")
-  const [loading, setLoading] = useState(true)
-  const [channelStats, setChannelStats] = useState<ChannelStats[]>([])
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -41,98 +63,41 @@ export default function ChannelsPage() {
   const [ticketId, setTicketId] = useState("")
   const [error, setError] = useState("")
 
-  // Fetch channel statistics from database
-  useEffect(() => {
-    fetchChannelStats()
-  }, [])
-
-  const fetchChannelStats = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/tickets/channels")
-      if (response.ok) {
-        const data = await response.json()
-        setChannelStats(data.channels || [])
-      }
-    } catch (error) {
-      console.error("Error fetching channel stats:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const CHANNELS = [
-    {
-      id: "whatsapp",
-      name: "WhatsApp",
-      icon: Smartphone,
-      color: "from-green-500 to-emerald-500",
-      bgColor: "bg-green-500/10",
-      borderColor: "border-green-500/30",
-      description: "Get support via WhatsApp",
-      placeholder: "+1 (555) 123-4567",
-      stats: channelStats.find(ch => ch.name === "WhatsApp")
-    },
-    {
-      id: "email",
-      name: "Email",
-      icon: Mail,
-      color: "from-blue-500 to-cyan-500",
-      bgColor: "bg-blue-500/10",
-      borderColor: "border-blue-500/30",
-      description: "Receive response via email",
-      placeholder: "john@example.com",
-      stats: channelStats.find(ch => ch.name === "Email")
-    },
-    {
-      id: "web_form",
-      name: "Web Form",
-      icon: Globe,
-      color: "from-purple-500 to-pink-500",
-      bgColor: "bg-purple-500/10",
-      borderColor: "border-purple-500/30",
-      description: "Submit via web form",
-      placeholder: "john@example.com",
-      stats: channelStats.find(ch => ch.name === "Web Form")
-    }
-  ]
-
-  const selectedChannelData = CHANNELS.find(ch => ch.id === selectedChannel)
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus("submitting")
     setError("")
 
     try {
-      console.log("📤 Submitting ticket...", { channel: selectedChannel, ...formData })
+      console.log("📤 Creating ticket...", { channel: selectedChannel, ...formData })
 
       let response
 
       if (selectedChannel === "whatsapp") {
-        // WhatsApp submission
+        // WhatsApp: Send via webhook
         response = await fetch("http://localhost:8000/webhooks/whatsapp", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             From: formData.phone,
-            Body: `${formData.subject}\n\n${formData.message}`,
+            Body: `${formData.subject}\n\n${formData.message}\n\nName: ${formData.name}\nEmail: ${formData.email}`,
             To: "whatsapp:+14155238886"
           }).toString()
         })
       } else if (selectedChannel === "email") {
-        // Email submission
+        // Email: Send via webhook
         response = await fetch("http://localhost:8000/webhooks/email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             from: formData.email,
+            name: formData.name,
             subject: formData.subject,
-            body: formData.message,
-            name: formData.name
+            body: formData.message
           })
         })
       } else {
-        // Web form submission
+        // Web Form: Use support submit endpoint
         response = await fetch("http://localhost:8000/support/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -154,16 +119,18 @@ export default function ChannelsPage() {
       }
 
       const data = await response.json()
-      console.log("✅ Submission successful:", data)
+      console.log("✅ Ticket created:", data)
 
       setTicketId(data.ticket_id)
       setStatus("success")
     } catch (err) {
       console.error("❌ Error:", err)
-      setError(err instanceof Error ? err.message : "Failed to submit. Please try again.")
+      setError(err instanceof Error ? err.message : "Failed to create ticket. Please try again.")
       setStatus("error")
     }
   }
+
+  const selectedChannelData = CHANNELS.find(ch => ch.id === selectedChannel)
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#030712]">
@@ -202,7 +169,10 @@ export default function ChannelsPage() {
                     setStatus("idle")
                     setFormData({ name: "", email: "", phone: "", subject: "", category: "GENERAL_INQUIRY", priority: "MEDIUM", message: "" })
                   }} variant="premium">
-                    Submit Another Ticket
+                    Create Another Ticket
+                  </Button>
+                  <Button onClick={() => router.push(`/dashboard/tickets/${ticketId}`)} variant="premium">
+                    View Ticket
                   </Button>
                   <Button onClick={() => router.push("/dashboard/tickets")} variant="outline">
                     View All Tickets
@@ -234,16 +204,10 @@ export default function ChannelsPage() {
                       <div className={`p-2 rounded-lg bg-gradient-to-br ${channel.color}`}>
                         <Icon className="h-5 w-5 text-white" />
                       </div>
-                      <div className="flex-1">
+                      <div>
                         <p className="font-medium text-white">{channel.name}</p>
                         <p className="text-xs text-neutral-400">{channel.description}</p>
                       </div>
-                      {channel.stats && (
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-white">{channel.stats.count}</p>
-                          <p className="text-xs text-neutral-500">tickets</p>
-                        </div>
-                      )}
                     </div>
                   </motion.button>
                 )
@@ -251,31 +215,6 @@ export default function ChannelsPage() {
 
               {/* Info Card */}
               <Card className="border-neutral-700/30 bg-neutral-900/40 backdrop-blur-xl mt-4">
-                <CardContent className="p-4">
-                  <h4 className="font-medium text-white mb-2">Live Statistics</h4>
-                  <div className="space-y-2">
-                    {loading ? (
-                      <div className="flex items-center gap-2 text-neutral-400">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        <span className="text-xs">Loading stats...</span>
-                      </div>
-                    ) : (
-                      channelStats.map((stat) => (
-                        <div key={stat.name} className="flex items-center justify-between text-xs">
-                          <span className="text-neutral-400">{stat.name}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium">{stat.count}</span>
-                            <span className="text-neutral-500">({stat.percentage}%)</span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* How it works */}
-              <Card className="border-neutral-700/30 bg-neutral-900/40 backdrop-blur-xl">
                 <CardContent className="p-4">
                   <h4 className="font-medium text-white mb-2">How it works:</h4>
                   <ul className="text-xs text-neutral-400 space-y-2">
@@ -344,7 +283,7 @@ export default function ChannelsPage() {
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className="w-full h-10 rounded-lg border border-neutral-700/50 bg-neutral-900/50 px-3 text-sm text-white focus:ring-2 focus:ring-green-500/50 focus:outline-none"
-                        placeholder={selectedChannelData?.placeholder}
+                        placeholder="+1 (555) 123-4567"
                       />
                       <p className="text-xs text-neutral-500 mt-1">Include country code (e.g., +1 for US)</p>
                     </div>
@@ -357,7 +296,7 @@ export default function ChannelsPage() {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         className="w-full h-10 rounded-lg border border-neutral-700/50 bg-neutral-900/50 px-3 text-sm text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none"
-                        placeholder={selectedChannelData?.placeholder}
+                        placeholder="john@example.com"
                       />
                     </div>
                   )}

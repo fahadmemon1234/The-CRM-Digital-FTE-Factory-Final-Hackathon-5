@@ -130,25 +130,36 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
   const handleSendResponse = async () => {
     if (!response.trim() || !ticket) return
-    
+
     setSubmitting(true)
     try {
+      console.log("📤 Sending response...", { ticket_id: ticket.id, message: response })
+      
       const responsePayload = await fetch("http://localhost:8000/api/tickets/response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ticket_id: ticket.id,
+          ticket_id: unwrappedParams.id, // Use the actual ID from URL
           message: response,
           sender: "AGENT"
         })
       })
 
+      console.log("📥 Response status:", responsePayload.status)
+
       if (responsePayload.ok) {
+        const data = await responsePayload.json()
+        console.log("✅ Response sent:", data)
         setResponse("")
         await fetchTicketData()
+      } else {
+        const errorData = await responsePayload.json()
+        console.error("❌ Error sending response:", errorData)
+        alert("Failed to send response: " + (errorData.error || "Unknown error"))
       }
     } catch (error) {
       console.error("Error sending response:", error)
+      alert("Error sending response: " + (error as Error).message)
     } finally {
       setSubmitting(false)
     }
@@ -156,22 +167,31 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
   const handleStatusUpdate = async (newStatus: string) => {
     if (!ticket) return
-    
+
     try {
+      console.log("📤 Updating status...", { ticket_id: unwrappedParams.id, status: newStatus })
+      
       const response = await fetch("http://localhost:8000/api/tickets/status", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ticket_id: ticket.id,
+          ticket_id: unwrappedParams.id, // Use the actual ID from URL
           status: newStatus
         })
       })
 
       if (response.ok) {
+        const data = await response.json()
+        console.log("✅ Status updated:", data)
         await fetchTicketData()
+      } else {
+        const errorData = await response.json()
+        console.error("❌ Error updating status:", errorData)
+        alert("Failed to update status: " + (errorData.error || "Unknown error"))
       }
     } catch (error) {
       console.error("Error updating status:", error)
+      alert("Error updating status: " + (error as Error).message)
     }
   }
 

@@ -168,19 +168,20 @@ class SupportFormSubmission(BaseModel):
     subject: str
     category: str
     message: str
-    
+    channel: str = "web_form"  # Optional channel field, defaults to web_form
+
     @validator('name')
     def name_must_not_be_empty(cls, v):
         if not v or len(v.strip()) < 2:
             raise ValueError('Name must be at least 2 characters')
         return v.strip()
-    
+
     @validator('message')
     def message_must_have_content(cls, v):
         if not v or len(v.strip()) < 10:
             raise ValueError('Message must be at least 10 characters')
         return v.strip()
-    
+
     @validator('category')
     def category_must_be_valid(cls, v):
         valid_categories = ['general', 'technical', 'billing', 'bug_report', 'feedback']
@@ -630,13 +631,16 @@ async def submit_support_form(
             db_category = CATEGORY_MAP.get(submission.category, 'GENERAL_INQUIRY')
             db_status = STATUS_MAP.get('open', 'OPEN')
             db_priority = PRIORITY_MAP.get('medium', 'MEDIUM')
+            
+            # Use channel from submission (defaults to 'web_form' if not provided)
+            source_channel = submission.channel or 'web_form'
 
             await conn.execute("""
                 INSERT INTO tickets (
                     id, customer_id, subject, source_channel, category,
                     status, priority, created_at, updated_at
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-            """, ticket_id, customer_id, submission.subject, 'web_form', db_category,
+            """, ticket_id, customer_id, submission.subject, source_channel, db_category,
                 db_status, db_priority)
 
             print(f"[INFO] Ticket created: {ticket_id}")
