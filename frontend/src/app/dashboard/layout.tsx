@@ -224,10 +224,12 @@ export default function DashboardLayout({
               <Bell className="h-4 w-4 text-neutral-400" />
               <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-red-500 shadow-lg shadow-red-500/50" />
             </Button>
-            <Button variant="premium" className="hidden h-8 text-xs sm:flex">
-              <Mail className="mr-1 h-3.5 w-3.5" />
-              <span className="hidden lg:inline">New Ticket</span>
-            </Button>
+            <Link href="/channels">
+              <Button variant="premium" className="hidden h-8 text-xs sm:flex">
+                <Mail className="mr-1 h-3.5 w-3.5" />
+                <span className="hidden lg:inline">New Ticket</span>
+              </Button>
+            </Link>
           </div>
         </header>
 
