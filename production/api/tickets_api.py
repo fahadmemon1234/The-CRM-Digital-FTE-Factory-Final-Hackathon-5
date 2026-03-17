@@ -622,7 +622,11 @@ async def get_ticket_detail(ticket_id: str):
         pool = await get_db_pool()
 
         async with pool.acquire() as conn:
-            # Get ticket details
+            # Extract the UUID part from TKT-XXXXX format
+            # Search in tickets by matching the subject which contains the short ID
+            clean_ticket_id = ticket_id.replace("TKT-", "").upper()
+            
+            # First try to find by subject containing the ID
             ticket = await conn.fetchrow("""
                 SELECT
                     t.id,
@@ -632,14 +636,36 @@ async def get_ticket_detail(ticket_id: str):
                     t.status,
                     t.priority,
                     t.created_at,
+                    t.conversation_id,
                     c.name as customer_name,
                     c.email as customer_email
                 FROM tickets t
                 LEFT JOIN customers c ON t.customer_id = c.id
-                WHERE t.id = $1
-            """, ticket_id)
+                WHERE t.subject ILIKE $1
+                LIMIT 1
+            """, f"%{clean_ticket_id}%")
 
             if not ticket:
+                # Try direct ID match
+                ticket = await conn.fetchrow("""
+                    SELECT
+                        t.id,
+                        t.subject,
+                        t.source_channel as channel,
+                        t.category,
+                        t.status,
+                        t.priority,
+                        t.created_at,
+                        c.name as customer_name,
+                        c.email as customer_email
+                    FROM tickets t
+                    LEFT JOIN customers c ON t.customer_id = c.id
+                    WHERE t.id::text ILIKE $1
+                    LIMIT 1
+                """, f"%{clean_ticket_id}%")
+
+            if not ticket:
+                print(f"Ticket not found for ID: {ticket_id}")
                 return {"error": "Ticket not found"}
 
             # Calculate time ago
@@ -660,27 +686,41 @@ async def get_ticket_detail(ticket_id: str):
             else:
                 time_ago = "Unknown"
 
-            # Get messages
-            messages = await conn.fetch("""
-                SELECT id, role, content, created_at, channel
-                FROM messages
-                WHERE ticket_id = $1
-                ORDER BY created_at ASC
-            """, ticket_id)
+            # Get ticket UUID for messages query
+            ticket_uuid = str(ticket['id'])
 
+            # Get conversation_id if it exists
+            conversation_id = None
+            if 'conversation_id' in ticket and ticket['conversation_id']:
+                conversation_id = str(ticket['conversation_id'])
+
+            # Get messages - try conversation_id first
             messages_list = []
-            for msg in messages:
-                messages_list.append({
-                    "id": str(msg['id']),
-                    "role": msg['role'],
-                    "content": msg['content'],
-                    "created_at": msg['created_at'].isoformat() if msg['created_at'] else "",
-                    "channel": msg['channel']
-                })
+            if conversation_id:
+                try:
+                    messages = await conn.fetch("""
+                        SELECT id, role, content, created_at, channel
+                        FROM messages
+                        WHERE conversation_id = $1
+                        ORDER BY created_at ASC
+                    """, conversation_id)
+                    
+                    for msg in messages:
+                        messages_list.append({
+                            "id": str(msg['id']),
+                            "role": msg['role'],
+                            "content": msg['content'],
+                            "created_at": msg['created_at'].isoformat() if msg['created_at'] else "",
+                            "channel": msg['channel']
+                        })
+                except Exception as msg_err:
+                    print(f"Messages table not ready or has different schema: {msg_err}")
+                    # Return ticket without messages
+                    messages_list = []
 
             return {
                 "ticket": {
-                    "id": f"TKT-{str(ticket['id'])[:8].upper()}",
+                    "id": ticket_id,
                     "subject": ticket['subject'] or "No Subject",
                     "customer_name": ticket['customer_name'],
                     "customer_email": ticket['customer_email'],
