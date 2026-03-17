@@ -304,14 +304,22 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
             )
 
             if not customer:
+                # Try finding by email first
+                temp_email = f"whatsapp_{from_number[-4:]}@temp.local"
+                customer = await conn.fetchrow(
+                    "SELECT id FROM customers WHERE email = $1",
+                    temp_email
+                )
+
+            if not customer:
                 # Generate a UUID for customer ID
                 customer_id = uuid_module.uuid4()
                 await conn.execute("""
                     INSERT INTO customers (id, phone, email, name, created_at)
                     VALUES ($1, $2, $3, $4, NOW())
-                """, customer_id, from_number, f"whatsapp_{from_number[-4:]}@temp.local", f"WhatsApp User {from_number[-4:]}")
+                """, str(customer_id), from_number, f"whatsapp_{from_number[-4:]}@temp.local", f"WhatsApp User {from_number[-4:]}")
             else:
-                customer_id = customer['id']
+                customer_id = customer['id']  # Keep as UUID object from DB
 
             # Create ticket - use same pattern as /support/submit
             db_category = "GENERAL_INQUIRY"
@@ -320,10 +328,10 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
 
             await conn.execute("""
                 INSERT INTO tickets (
-                    id, customer_id, source_channel, category,
+                    id, customer_id, subject, source_channel, category,
                     status, priority, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            """, ticket_uuid, customer_id, "whatsapp",
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            """, str(ticket_uuid), customer_id, f"Support Request from WhatsApp", "whatsapp",
                 db_category, db_status, db_priority)
 
             print(f"[WhatsApp Webhook] Ticket created: {ticket_id}")
@@ -426,7 +434,7 @@ async def submit_support_form(
             )
 
             if customer:
-                customer_id = customer['id']
+                customer_id = str(customer['id'])  # Convert to string for consistency
                 print(f"[INFO] Customer found: {customer_id}")
             else:
                 # Generate a UUID for customer ID (compatible with VARCHAR(36))
