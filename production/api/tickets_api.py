@@ -613,3 +613,136 @@ async def get_category_trends():
                 {"category": "Feedback", "current": 0, "previous": 0, "change": 0}
             ]
         }
+
+
+@router.get("/tickets/{ticket_id}")
+async def get_ticket_detail(ticket_id: str):
+    """Get detailed ticket information including messages."""
+    try:
+        pool = await get_db_pool()
+
+        async with pool.acquire() as conn:
+            # Get ticket details
+            ticket = await conn.fetchrow("""
+                SELECT
+                    t.id,
+                    t.subject,
+                    t.source_channel as channel,
+                    t.category,
+                    t.status,
+                    t.priority,
+                    t.created_at,
+                    c.name as customer_name,
+                    c.email as customer_email
+                FROM tickets t
+                LEFT JOIN customers c ON t.customer_id = c.id
+                WHERE t.id = $1
+            """, ticket_id)
+
+            if not ticket:
+                return {"error": "Ticket not found"}
+
+            # Calculate time ago
+            created_at = ticket['created_at']
+            if created_at:
+                if hasattr(created_at, 'tzinfo') and created_at.tzinfo is not None:
+                    created_at = created_at.replace(tzinfo=None)
+                now = datetime.utcnow()
+                diff = now - created_at
+                if diff.total_seconds() < 60:
+                    time_ago = "Just now"
+                elif diff.total_seconds() < 3600:
+                    time_ago = f"{int(diff.total_seconds() / 60)}m ago"
+                elif diff.total_seconds() < 86400:
+                    time_ago = f"{int(diff.total_seconds() / 3600)}h ago"
+                else:
+                    time_ago = f"{int(diff.total_seconds() / 86400)}d ago"
+            else:
+                time_ago = "Unknown"
+
+            # Get messages
+            messages = await conn.fetch("""
+                SELECT id, role, content, created_at, channel
+                FROM messages
+                WHERE ticket_id = $1
+                ORDER BY created_at ASC
+            """, ticket_id)
+
+            messages_list = []
+            for msg in messages:
+                messages_list.append({
+                    "id": str(msg['id']),
+                    "role": msg['role'],
+                    "content": msg['content'],
+                    "created_at": msg['created_at'].isoformat() if msg['created_at'] else "",
+                    "channel": msg['channel']
+                })
+
+            return {
+                "ticket": {
+                    "id": f"TKT-{str(ticket['id'])[:8].upper()}",
+                    "subject": ticket['subject'] or "No Subject",
+                    "customer_name": ticket['customer_name'],
+                    "customer_email": ticket['customer_email'],
+                    "channel": ticket['channel'],
+                    "category": ticket['category'],
+                    "status": ticket['status'],
+                    "priority": ticket['priority'],
+                    "sentiment": 0.5,
+                    "time": time_ago,
+                    "created_at": ticket['created_at'].isoformat() if ticket['created_at'] else ""
+                },
+                "messages": messages_list
+            }
+
+    except Exception as e:
+        print(f"Error in get_ticket_detail: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
+
+
+@router.post("/tickets/response")
+async def send_ticket_response(ticket_id: str, message: str, sender: str = "AGENT"):
+    """Send a response to a ticket."""
+    try:
+        pool = await get_db_pool()
+
+        async with pool.acquire() as conn:
+            # Get conversation_id from ticket
+            ticket = await conn.fetchrow("""
+                SELECT conversation_id FROM tickets WHERE id = $1
+            """, ticket_id)
+
+            if not ticket:
+                return {"error": "Ticket not found"}
+
+            # Insert message
+            await conn.execute("""
+                INSERT INTO messages (ticket_id, sender, content, channel, timestamp)
+                VALUES ($1, $2, $3, 'WEB', NOW())
+            """, ticket_id, sender, message)
+
+            return {"success": True, "message": "Response sent"}
+
+    except Exception as e:
+        print(f"Error in send_ticket_response: {e}")
+        return {"error": str(e)}
+
+
+@router.put("/tickets/status")
+async def update_ticket_status(ticket_id: str, status: str):
+    """Update ticket status."""
+    try:
+        pool = await get_db_pool()
+
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                UPDATE tickets SET status = $1 WHERE id = $2
+            """, status, ticket_id)
+
+            return {"success": True, "message": f"Status updated to {status}"}
+
+    except Exception as e:
+        print(f"Error in update_ticket_status: {e}")
+        return {"error": str(e)}
