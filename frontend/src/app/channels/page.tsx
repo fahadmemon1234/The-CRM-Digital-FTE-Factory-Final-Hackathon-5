@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { CheckCircle, Loader2, ArrowLeft, Mail, Smartphone, Globe } from "lucide-react"
+import { CheckCircle, Loader2, ArrowLeft, Mail, Smartphone, Globe, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,42 +17,17 @@ const CATEGORIES = [
   { value: "FEATURE_REQUEST", label: "Feature Request" }
 ]
 
-const CHANNELS = [
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    icon: Smartphone,
-    color: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-500/10",
-    borderColor: "border-green-500/30",
-    description: "Get support via WhatsApp",
-    placeholder: "+1 (555) 123-4567"
-  },
-  {
-    id: "email",
-    name: "Email",
-    icon: Mail,
-    color: "from-blue-500 to-cyan-500",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/30",
-    description: "Receive response via email",
-    placeholder: "john@example.com"
-  },
-  {
-    id: "web_form",
-    name: "Web Form",
-    icon: Globe,
-    color: "from-purple-500 to-pink-500",
-    bgColor: "bg-purple-500/10",
-    borderColor: "border-purple-500/30",
-    description: "Submit via web form",
-    placeholder: "john@example.com"
-  }
-]
+interface ChannelStats {
+  name: string
+  count: number
+  percentage: number
+}
 
 export default function ChannelsPage() {
   const router = useRouter()
   const [selectedChannel, setSelectedChannel] = useState<string>("web_form")
+  const [loading, setLoading] = useState(true)
+  const [channelStats, setChannelStats] = useState<ChannelStats[]>([])
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -66,6 +41,63 @@ export default function ChannelsPage() {
   const [ticketId, setTicketId] = useState("")
   const [error, setError] = useState("")
 
+  // Fetch channel statistics from database
+  useEffect(() => {
+    fetchChannelStats()
+  }, [])
+
+  const fetchChannelStats = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/api/tickets/channels")
+      if (response.ok) {
+        const data = await response.json()
+        setChannelStats(data.channels || [])
+      }
+    } catch (error) {
+      console.error("Error fetching channel stats:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const CHANNELS = [
+    {
+      id: "whatsapp",
+      name: "WhatsApp",
+      icon: Smartphone,
+      color: "from-green-500 to-emerald-500",
+      bgColor: "bg-green-500/10",
+      borderColor: "border-green-500/30",
+      description: "Get support via WhatsApp",
+      placeholder: "+1 (555) 123-4567",
+      stats: channelStats.find(ch => ch.name === "WhatsApp")
+    },
+    {
+      id: "email",
+      name: "Email",
+      icon: Mail,
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/30",
+      description: "Receive response via email",
+      placeholder: "john@example.com",
+      stats: channelStats.find(ch => ch.name === "Email")
+    },
+    {
+      id: "web_form",
+      name: "Web Form",
+      icon: Globe,
+      color: "from-purple-500 to-pink-500",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/30",
+      description: "Submit via web form",
+      placeholder: "john@example.com",
+      stats: channelStats.find(ch => ch.name === "Web Form")
+    }
+  ]
+
+  const selectedChannelData = CHANNELS.find(ch => ch.id === selectedChannel)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus("submitting")
@@ -75,7 +107,7 @@ export default function ChannelsPage() {
       console.log("📤 Submitting ticket...", { channel: selectedChannel, ...formData })
 
       let response
-      
+
       if (selectedChannel === "whatsapp") {
         // WhatsApp submission
         response = await fetch("http://localhost:8000/webhooks/whatsapp", {
@@ -132,8 +164,6 @@ export default function ChannelsPage() {
       setStatus("error")
     }
   }
-
-  const selectedChannelData = CHANNELS.find(ch => ch.id === selectedChannel)
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#030712]">
@@ -204,10 +234,16 @@ export default function ChannelsPage() {
                       <div className={`p-2 rounded-lg bg-gradient-to-br ${channel.color}`}>
                         <Icon className="h-5 w-5 text-white" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium text-white">{channel.name}</p>
                         <p className="text-xs text-neutral-400">{channel.description}</p>
                       </div>
+                      {channel.stats && (
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-white">{channel.stats.count}</p>
+                          <p className="text-xs text-neutral-500">tickets</p>
+                        </div>
+                      )}
                     </div>
                   </motion.button>
                 )
@@ -215,6 +251,31 @@ export default function ChannelsPage() {
 
               {/* Info Card */}
               <Card className="border-neutral-700/30 bg-neutral-900/40 backdrop-blur-xl mt-4">
+                <CardContent className="p-4">
+                  <h4 className="font-medium text-white mb-2">Live Statistics</h4>
+                  <div className="space-y-2">
+                    {loading ? (
+                      <div className="flex items-center gap-2 text-neutral-400">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span className="text-xs">Loading stats...</span>
+                      </div>
+                    ) : (
+                      channelStats.map((stat) => (
+                        <div key={stat.name} className="flex items-center justify-between text-xs">
+                          <span className="text-neutral-400">{stat.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-medium">{stat.count}</span>
+                            <span className="text-neutral-500">({stat.percentage}%)</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* How it works */}
+              <Card className="border-neutral-700/30 bg-neutral-900/40 backdrop-blur-xl">
                 <CardContent className="p-4">
                   <h4 className="font-medium text-white mb-2">How it works:</h4>
                   <ul className="text-xs text-neutral-400 space-y-2">
