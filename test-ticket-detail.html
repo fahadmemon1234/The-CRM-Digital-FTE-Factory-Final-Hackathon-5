@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Ticket Detail</title>
+</head>
+<body>
+    <h1>Testing Ticket Detail API</h1>
+    <div id="result"></div>
+    
+    <script>
+        fetch('http://localhost:8000/api/tickets/TKT-219A97A8')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                console.log('✅ API Working:', data);
+            })
+            .catch(err => {
+                document.getElementById('result').innerHTML = '<p style="color:red">Error: ' + err + '</p>';
+                console.error('❌ API Error:', err);
+            });
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { motion } from "framer-motion"
 import {
   ArrowLeft,
@@ -72,7 +72,9 @@ const statusConfig: Record<string, { badge: any, label: string }> = {
   ESCALATED: { badge: "destructive", label: "Escalated" }
 }
 
-export default function TicketDetailPage({ params }: { params: { id: string } }) {
+export default function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap params Promise using React.use()
+  const unwrappedParams = use(params)
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [ticket, setTicket] = useState<Ticket | null>(null)
@@ -85,19 +87,36 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     fetchTicketData()
-  }, [params.id])
+  }, [unwrappedParams.id])
 
   const fetchTicketData = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:8000/api/tickets/${params.id}`)
+      console.log("📤 Fetching ticket:", unwrappedParams.id)
+      
+      const response = await fetch(`http://localhost:8000/api/tickets/${unwrappedParams.id}`)
+      console.log("📥 Response status:", response.status)
+      
       if (response.ok) {
         const data = await response.json()
-        setTicket(data.ticket)
-        setMessages(data.messages || [])
+        console.log("✅ Ticket data received:", data)
+        
+        if (data.error) {
+          console.error("API returned error:", data.error)
+          setTicket(null)
+        } else {
+          setTicket(data.ticket)
+          setMessages(data.messages || [])
+        }
+      } else {
+        console.error("API request failed with status:", response.status)
+        const errorData = await response.json()
+        console.error("Error data:", errorData)
+        setTicket(null)
       }
     } catch (error) {
-      console.error("Error fetching ticket:", error)
+      console.error("❌ Error fetching ticket:", error)
+      setTicket(null)
     } finally {
       setLoading(false)
     }
@@ -230,7 +249,10 @@ TechCorp Support Team`
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold text-white mb-2">Ticket Not Found</h2>
-        <p className="text-neutral-400 mb-4">The ticket you're looking for doesn't exist.</p>
+        <p className="text-neutral-400 mb-4">The ticket you're looking for doesn't exist or API is not responding.</p>
+        <div className="text-sm text-neutral-500 mb-4">
+          Looking for: {unwrappedParams.id}
+        </div>
         <Button onClick={() => router.push("/dashboard/tickets")}>
           Back to Tickets
         </Button>
