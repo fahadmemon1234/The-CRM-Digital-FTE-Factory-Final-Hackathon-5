@@ -12,10 +12,13 @@ from typing import Optional, List, Dict, Any
 
 router = APIRouter(prefix="/api", tags=["tickets"])
 
-# Import db_pool from main module
-import sys
-sys.path.insert(0, '..')
-from production.api.main import get_db_pool
+# Database pool - will be set by main.py
+db_pool = None
+
+def set_db_pool(pool):
+    """Set database pool from main module"""
+    global db_pool
+    db_pool = pool
 
 
 @router.get("/tickets")
@@ -28,11 +31,11 @@ async def get_all_tickets(
 ):
     """
     Get all tickets from database.
-    
+
     Returns tickets in frontend-friendly format.
     """
     try:
-        pool = await get_db_pool()
+        pool = db_pool
         
         # Simple query
         query = """
@@ -102,7 +105,7 @@ async def get_all_tickets(
 async def get_tickets_stats():
     """Get tickets statistics for dashboard."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get all tickets and count in Python to avoid enum issues
@@ -174,7 +177,7 @@ async def get_tickets_stats():
 async def get_channel_stats():
     """Get tickets statistics by channel for dashboard."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get counts by channel
@@ -251,7 +254,7 @@ async def get_channel_stats():
 async def get_category_stats():
     """Get tickets statistics by category for dashboard."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get counts by category
@@ -296,7 +299,7 @@ async def get_category_stats():
 async def get_ticket_activity():
     """Get ticket activity data for the last 24 hours."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get tickets created in last 24 hours grouped by 4-hour intervals
@@ -366,7 +369,7 @@ async def get_ticket_activity():
 async def get_analytics_kpis():
     """Get key performance indicators for analytics dashboard."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get total tickets and resolved tickets
@@ -420,7 +423,7 @@ async def get_analytics_kpis():
 async def get_volume_trend():
     """Get 7-day ticket volume trend."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get tickets per day for last 7 days
@@ -481,7 +484,7 @@ async def get_volume_trend():
 async def get_sentiment_analysis():
     """Get sentiment analysis from conversations."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get sentiment scores from conversations
@@ -541,7 +544,7 @@ async def get_sentiment_analysis():
 async def get_category_trends():
     """Get category trends with week-over-week comparison."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get current week counts
@@ -621,7 +624,7 @@ async def get_category_trends():
 async def get_ticket_detail(ticket_id: str):
     """Get detailed ticket information including messages."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Extract the UUID part from TKT-XXXXX format
@@ -753,7 +756,7 @@ class TicketResponse(BaseModel):
 async def send_ticket_response(response_data: TicketResponse):
     """Send a response to a ticket."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Get ticket to find conversation_id
@@ -810,7 +813,7 @@ class StatusUpdate(BaseModel):
 async def update_ticket_status(status_data: StatusUpdate):
     """Update ticket status."""
     try:
-        pool = await get_db_pool()
+        pool = db_pool
 
         async with pool.acquire() as conn:
             # Convert status to uppercase for database

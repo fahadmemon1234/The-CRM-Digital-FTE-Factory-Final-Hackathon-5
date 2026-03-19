@@ -23,9 +23,12 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
+import toast from "react-hot-toast"
 
 export default function SignupPage() {
   const router = useRouter()
+  const { register: authRegister } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -38,14 +41,53 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate name
+    if (!formData.name || formData.name.trim().length < 2) {
+      toast.error('Name must be at least 2 characters')
+      return
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+    
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match')
+      return
+    }
+    
+    // Validate password length
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+    
+    // Validate company (optional but if provided, min 2 chars)
+    if (formData.company && formData.company.trim().length < 2) {
+      toast.error('Company name must be at least 2 characters')
+      return
+    }
+
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    // Redirect to dashboard
-    router.push("/dashboard")
-    setIsLoading(false)
+    try {
+      await authRegister({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        company: formData.company || undefined
+      })
+      // Redirect handled by auth context
+    } catch (err: any) {
+      // Error toast already shown by auth context
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const features = [

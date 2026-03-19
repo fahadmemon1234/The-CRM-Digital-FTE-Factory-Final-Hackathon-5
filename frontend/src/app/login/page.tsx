@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Mail,
   Lock,
@@ -19,11 +19,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { login: authLogin } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
@@ -31,15 +34,40 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate email
+    if (!email || !email.includes('@')) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+    
+    // Validate password
+    if (!password || password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    // Redirect to dashboard
-    router.push("/dashboard")
-    setIsLoading(false)
+    try {
+      await authLogin({ email, password })
+      // Redirect handled by auth context
+    } catch (err: any) {
+      // Error toast already shown by auth context
+    } finally {
+      setIsLoading(false)
+    }
   }
+
+  // Get redirect message from URL params
+  const expired = searchParams.get('expired')
+  const registered = searchParams.get('registered')
+  
+  const redirectMessage = expired
+    ? "Your session has expired. Please login again."
+    : registered
+    ? "Account created successfully! Please login with your credentials."
+    : null
 
   const features = [
     { icon: Zap, text: "2.4min Avg Response", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
@@ -105,7 +133,7 @@ export default function LoginPage() {
           className="hidden lg:flex flex-col justify-center space-y-8"
         >
           <div className="space-y-4">
-            <motion.div 
+            <motion.div
               className="flex items-center gap-3"
               whileHover={{ scale: 1.02 }}
             >
@@ -114,7 +142,7 @@ export default function LoginPage() {
               </div>
               <span className="text-3xl font-bold gradient-text">TechCorp</span>
             </motion.div>
-            
+
             <h1 className="text-5xl font-bold leading-tight">
               <span className="gradient-text">AI-Powered</span> Customer Success
             </h1>
@@ -145,7 +173,7 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <motion.div 
+          <motion.div
             className="flex items-center gap-4 pt-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -200,6 +228,21 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Session Expired Message */}
+              <AnimatePresence>
+                {redirectMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm flex items-center gap-2"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    {redirectMessage}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Email</label>

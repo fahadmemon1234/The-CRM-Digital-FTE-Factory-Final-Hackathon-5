@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useSearchParams } from "next/navigation"
 import {
   Mail,
   Smartphone,
@@ -121,13 +120,8 @@ const itemVariants = {
 }
 
 export default function ChannelsPage() {
-  const searchParams = useSearchParams()
-  const activeTab = searchParams.get('tab')
-
-  // Filter channels if a tab is selected
-  const displayChannels = activeTab
-    ? channels.filter(c => c.name.toLowerCase().replace(' ', '') === activeTab)
-    : channels
+  // Display all channels (no tabs)
+  const displayChannels = channels
 
   return (
     <motion.div

@@ -15,29 +15,19 @@ import {
   Search,
   LogOut,
   Sparkles,
-  Radio,
-  ChevronDown,
-  Smartphone
+  Radio
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tickets", href: "/dashboard/tickets", icon: Ticket },
-  { 
-    name: "Channels", 
-    href: "/dashboard/channels", 
-    icon: Radio,
-    subItems: [
-      { name: "Email", href: "/dashboard/channels?tab=email", icon: Mail },
-      { name: "WhatsApp", href: "/dashboard/channels?tab=whatsapp", icon: Smartphone },
-      { name: "Web Form", href: "/dashboard/channels?tab=webform", icon: MessageSquare },
-    ]
-  },
+  { name: "Channels", href: "/dashboard/channels", icon: Radio },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
 ]
 
@@ -48,8 +38,8 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
   const pathname = usePathname()
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     setIsMounted(true)
@@ -84,65 +74,21 @@ export default function DashboardLayout({
           <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '?')
-              const hasSubItems = item.subItems && item.subItems.length > 0
-              const isExpanded = expandedMenu === item.name
 
               return (
-                <div key={item.name} className="space-y-1">
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-300",
-                      isActive
-                        ? "bg-gradient-to-r from-cyan-600/20 via-blue-600/20 to-indigo-600/20 text-cyan-400 border border-cyan-500/20 shadow-lg shadow-cyan-500/10"
-                        : "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200"
-                    )}
-                    onClick={(e) => {
-                      if (hasSubItems) {
-                        e.preventDefault()
-                        setExpandedMenu(isExpanded ? null : item.name)
-                      }
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <item.icon className="h-5 w-5" />
-                      {item.name}
-                    </div>
-                    {hasSubItems && (
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 transition-transform duration-300",
-                          isExpanded && "rotate-180"
-                        )}
-                      />
-                    )}
-                  </Link>
-
-                  {/* Sub-menu items */}
-                  {hasSubItems && isExpanded && (
-                    <div className="ml-4 space-y-0.5 border-l border-neutral-800/50 pl-3">
-                      {item.subItems.map((subItem) => {
-                        const isSubActive = pathname?.includes(subItem.href)
-                        const SubIcon = subItem.icon
-                        return (
-                          <Link
-                            key={subItem.name}
-                            href={subItem.href}
-                            className={cn(
-                              "flex items-center gap-3 rounded-md px-3 py-2 text-xs font-medium transition-all duration-300",
-                              isSubActive
-                                ? "bg-cyan-600/10 text-cyan-400 border border-cyan-500/20"
-                                : "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200"
-                            )}
-                          >
-                            <SubIcon className="h-4 w-4" />
-                            {subItem.name}
-                          </Link>
-                        )
-                      })}
-                    </div>
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-300",
+                    isActive
+                      ? "bg-gradient-to-r from-cyan-600/20 via-blue-600/20 to-indigo-600/20 text-cyan-400 border border-cyan-500/20 shadow-lg shadow-cyan-500/10"
+                      : "text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200"
                   )}
-                </div>
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.name}
+                </Link>
               )
             })}
           </nav>
@@ -167,15 +113,28 @@ export default function DashboardLayout({
               <Avatar>
                 <AvatarImage src="/avatars/user.jpg" />
                 <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-indigo-600 text-xs font-medium text-white">
-                  JD
+                  {user?.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-neutral-200">John Doe</p>
-                <p className="truncate text-xs text-neutral-400">Support Admin</p>
+                <p className="truncate text-sm font-medium text-neutral-200">{user?.name || 'User'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-xs text-neutral-400">{user?.email || ''}</p>
+                  {user?.role === 'admin' && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 rounded">
+                      ADMIN
+                    </span>
+                  )}
+                </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 hover:bg-neutral-700/50">
-                <LogOut className="h-4 w-4 text-neutral-400" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 hover:bg-red-500/10 hover:text-red-400"
+                onClick={() => logout()}
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>

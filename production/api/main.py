@@ -20,9 +20,15 @@ load_dotenv()
 
 # Import tickets router
 try:
-    from production.api.tickets_api import router as tickets_router
+    from production.api.tickets_api import router as tickets_router, set_db_pool as set_tickets_db_pool
 except ImportError:
-    from api.tickets_api import router as tickets_router
+    from api.tickets_api import router as tickets_router, set_db_pool as set_tickets_db_pool
+
+# Import auth router
+try:
+    from production.api.auth_api import router as auth_router, set_db_pool as set_auth_db_pool
+except ImportError:
+    from api.auth_api import router as auth_router, set_db_pool as set_auth_db_pool
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -40,7 +46,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include tickets router
+# Include routers
+app.include_router(auth_router)
 app.include_router(tickets_router)
 
 # ============================================================================
@@ -151,6 +158,18 @@ async def get_db_pool():
                 command_timeout=60
             )
             print("[INFO] Database pool created successfully")
+            # Set db_pool for tickets_api module
+            try:
+                set_tickets_db_pool(db_pool)
+                print("[INFO] Tickets API db_pool set successfully")
+            except Exception as e:
+                print(f"[WARNING] Failed to set tickets API db_pool: {e}")
+            # Set db_pool for auth_api module
+            try:
+                set_auth_db_pool(db_pool)
+                print("[INFO] Auth API db_pool set successfully")
+            except Exception as e:
+                print(f"[WARNING] Failed to set auth API db_pool: {e}")
         except Exception as e:
             print(f"[ERROR] Database pool creation failed: {e}")
             raise

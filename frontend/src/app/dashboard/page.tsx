@@ -14,11 +14,14 @@ import {
   Smartphone,
   Zap,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  User
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   AreaChart,
@@ -88,6 +91,9 @@ const itemVariants = {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { user, isAuthenticated, isLoading: authLoading, isAdmin } = useAuth()
+  const [isMounted, setIsMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats>({
     totalTickets: 0,
@@ -100,7 +106,10 @@ export default function DashboardPage() {
   const [recentTickets, setRecentTickets] = useState<TicketType[]>([])
   const [activityData, setActivityData] = useState<ActivityData[]>([])
 
+  // Auth check is handled by auth context - redirects to login if not authenticated
+
   useEffect(() => {
+    setIsMounted(true)
     loadDashboardData()
     // Refresh data every 30 seconds
     const interval = setInterval(loadDashboardData, 30000)
@@ -168,21 +177,37 @@ export default function DashboardPage() {
           <p className="mt-0.5 text-xs text-neutral-400 lg:text-sm">
             {loading ? 'Loading real-time data...' : 'Real-time data from database'}
           </p>
+          {isAdmin && (
+            <div className="mt-1 flex items-center gap-2">
+              <Badge variant="success" className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 text-xs px-2 py-0.5">
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Admin Access
+              </Badge>
+              <span className="text-xs text-neutral-500">Full dashboard access</span>
+            </div>
+          )}
+          {!isAdmin && (
+            <div className="mt-1 flex items-center gap-2">
+              <Badge variant="default" className="bg-neutral-800 text-neutral-400 border border-neutral-700 text-xs px-2 py-0.5">
+                User Access
+              </Badge>
+              <span className="text-xs text-neutral-500">View-only access</span>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 backdrop-blur-xl text-xs px-3 py-1.5">
-            <CheckCircle2 className="mr-1 h-3 w-3" />
-            Database Connected
-          </Badge>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={loadDashboardData}
-            disabled={loading}
-            className="h-8 px-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+        <div className="flex items-center gap-3">
+          {/* User Info */}
+          {user && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="text-xs">
+                <p className="font-medium text-white">{user.name}</p>
+                <p className="text-neutral-400">{user.email}</p>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
 
