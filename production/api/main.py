@@ -30,6 +30,12 @@ try:
 except ImportError:
     from api.auth_api import router as auth_router, set_db_pool as set_auth_db_pool
 
+# Import search router
+try:
+    from production.api.search_api import router as search_router, set_db_pool as set_search_db_pool
+except ImportError:
+    from api.search_api import router as search_router, set_db_pool as set_search_db_pool
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Customer Success FTE API",
@@ -49,6 +55,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(tickets_router)
+app.include_router(search_router)
 
 # ============================================================================
 # SIMPLE TICKETS API - Direct endpoint for frontend
@@ -170,6 +177,12 @@ async def get_db_pool():
                 print("[INFO] Auth API db_pool set successfully")
             except Exception as e:
                 print(f"[WARNING] Failed to set auth API db_pool: {e}")
+            # Set db_pool for search_api module
+            try:
+                set_search_db_pool(db_pool)
+                print("[INFO] Search API db_pool set successfully")
+            except Exception as e:
+                print(f"[WARNING] Failed to set search API db_pool: {e}")
         except Exception as e:
             print(f"[ERROR] Database pool creation failed: {e}")
             raise

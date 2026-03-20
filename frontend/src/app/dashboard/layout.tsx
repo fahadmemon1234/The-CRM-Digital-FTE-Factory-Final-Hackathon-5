@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard,
   Ticket,
-  MessageSquare,
   BarChart3,
   Users,
   Mail,
@@ -15,14 +14,19 @@ import {
   Search,
   LogOut,
   Sparkles,
-  Radio
+  Radio,
+  ArrowRight,
+  FileText,
+  MessageCircle,
+  User
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
+import { quickSearch, type SearchResult } from "@/lib/search"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -38,12 +42,64 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showResults, setShowResults] = useState(false)
+  const searchTimeoutRef = useRef<NodeJS.Timeout>()
   const pathname = usePathname()
+  const router = useRouter()
   const { user, logout } = useAuth()
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    if (!searchQuery || searchQuery.length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true)
+      const data = await quickSearch(searchQuery, 6)
+      setSearchResults(data.results || [])
+      setIsSearching(false)
+    }, 300)
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [searchQuery])
+
+  const handleSelectResult = (url: string) => {
+    router.push(url)
+    setShowResults(false)
+    setSearchQuery('')
+  }
+
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case 'ticket':
+        return <Ticket className="h-4 w-4 text-blue-400" />
+      case 'customer':
+        return <User className="h-4 w-4 text-green-400" />
+      case 'conversation':
+        return <MessageCircle className="h-4 w-4 text-purple-400" />
+      case 'message':
+        return <FileText className="h-4 w-4 text-orange-400" />
+      default:
+        return <ArrowRight className="h-4 w-4 text-neutral-400" />
+    }
+  }
 
   if (!isMounted) {
     return null
@@ -167,13 +223,86 @@ export default function DashboardLayout({
 
           {/* Search */}
           <div className="flex-1">
-            <div className="relative hidden max-w-md md:block">
+            <div className="relative max-w-md">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setShowResults(true)
+                }}
+                onFocus={() => setShowResults(true)}
+                onBlur={() => setTimeout(() => setShowResults(false), 200)}
                 placeholder="Search tickets, customers..."
                 className="h-8 w-full rounded-md border border-neutral-700/50 bg-neutral-900/50 pl-9 pr-4 text-xs text-neutral-200 placeholder:text-neutral-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 backdrop-blur-xl"
               />
+              
+              {/* Search Results Dropdown */}
+              <AnimatePresence>
+                {showResults && (searchQuery.length >= 2 || isSearching) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 right-0 mt-2 max-h-96 overflow-y-auto rounded-lg border border-neutral-700/50 bg-neutral-900/95 backdrop-blur-xl shadow-2xl z-50"
+                  >
+                    {isSearching && searchResults.length === 0 && (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+                        <span className="ml-2 text-xs text-neutral-400">Searching...</span>
+                      </div>
+                    )}
+                    
+                    {!isSearching && searchResults.length === 0 && searchQuery.length >= 2 && (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Search className="h-8 w-8 text-neutral-600 mb-2" />
+                        <p className="text-sm text-neutral-400">No results found</p>
+                        <p className="text-xs text-neutral-500 mt-1">Try searching for tickets or customers</p>
+                      </div>
+                    )}
+                    
+                    {searchResults.length > 0 && (
+                      <div className="py-2">
+                        <div className="px-3 py-2 border-b border-neutral-700/50">
+                          <p className="text-xs font-medium text-neutral-400">
+                            {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+                          </p>
+                        </div>
+                        {searchResults.map((result, index) => (
+                          <button
+                            key={`${result.type}-${result.id}`}
+                            onClick={() => handleSelectResult(result.url)}
+                            className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-neutral-800/50 transition-colors text-left group"
+                          >
+                            <div className="flex-shrink-0">
+                              {getIconForType(result.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-neutral-200 truncate group-hover:text-cyan-400 transition-colors">
+                                {result.title}
+                              </p>
+                              <p className="text-xs text-neutral-500 truncate">
+                                {result.subtitle}
+                              </p>
+                            </div>
+                            <ArrowRight className="h-3.5 w-3.5 text-neutral-600 group-hover:text-cyan-400 transition-colors" />
+                          </button>
+                        ))}
+                        <div className="px-3 py-2 border-t border-neutral-700/50">
+                          <Link
+                            href={`/dashboard/tickets?search=${encodeURIComponent(searchQuery)}`}
+                            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors flex items-center justify-center gap-1"
+                          >
+                            View all results
+                            <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
