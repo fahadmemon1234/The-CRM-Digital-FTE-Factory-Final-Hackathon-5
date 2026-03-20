@@ -11,85 +11,78 @@ import {
   Bell,
   Link as LinkIcon,
   Globe,
-  Phone
+  Phone,
+  Loader2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
+import { getChannels, type Channel } from "@/lib/channels"
 
-const channels = [
+// Icon mapping
+const iconMap = {
+  Mail: Mail,
+  Smartphone: Smartphone,
+  MessageSquare: MessageSquare
+}
+
+// Default channels as fallback
+const defaultChannels = [
   {
     name: "Email",
-    icon: Mail,
-    status: "active",
+    icon: "Mail" as const,
+    status: "active" as const,
     description: "Gmail integration with Pub/Sub notifications",
     color: "#3b82f6",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/30",
     textColor: "text-blue-400",
     stats: {
-      tickets: 1247,
-      responseTime: "2.4m",
-      satisfaction: 94
+      tickets: 0,
+      avgResponseTime: "0m",
+      satisfaction: 0
     },
-    features: [
-      "Real-time notifications",
-      "Auto-ticket creation",
-      "Thread tracking",
-      "Attachment support"
-    ],
     config: {
       provider: "Gmail API",
-      webhook: "Configured",
-      lastSync: "2 minutes ago"
+      webhook: "Not configured",
+      lastSync: "Never"
     }
   },
   {
     name: "WhatsApp",
-    icon: Smartphone,
-    status: "active",
+    icon: "Smartphone" as const,
+    status: "active" as const,
     description: "Twilio WhatsApp Business API integration",
     color: "#22c55e",
     bgColor: "bg-green-500/10",
     borderColor: "border-green-500/30",
     textColor: "text-green-400",
     stats: {
-      tickets: 892,
-      responseTime: "1.8m",
-      satisfaction: 96
+      tickets: 0,
+      avgResponseTime: "0m",
+      satisfaction: 0
     },
-    features: [
-      "Instant messaging",
-      "Media support",
-      "Read receipts",
-      "Quick replies"
-    ],
     config: {
       provider: "Twilio",
-      webhook: "Configured",
-      lastSync: "1 minute ago"
+      webhook: "Not configured",
+      lastSync: "Never"
     }
   },
   {
     name: "Web Form",
-    icon: MessageSquare,
-    status: "active",
+    icon: "MessageSquare" as const,
+    status: "active" as const,
     description: "Embedded support form for your website",
     color: "#8b5cf6",
     bgColor: "bg-purple-500/10",
     borderColor: "border-purple-500/30",
     textColor: "text-purple-400",
     stats: {
-      tickets: 708,
-      responseTime: "3.2m",
-      satisfaction: 92
+      tickets: 0,
+      avgResponseTime: "0m",
+      satisfaction: 0
     },
-    features: [
-      "Customizable form",
-      "File attachments",
-      "Spam protection",
-      "Auto-responders"
-    ],
     config: {
       provider: "FastAPI",
       webhook: "N/A",
@@ -120,6 +113,30 @@ const itemVariants = {
 }
 
 export default function ChannelsPage() {
+  const [channels, setChannels] = useState<Channel[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadChannels() {
+      try {
+        setLoading(true)
+        const data = await getChannels()
+        if (data && data.length > 0) {
+          setChannels(data)
+        } else {
+          setChannels(defaultChannels as unknown as Channel[])
+        }
+      } catch (error) {
+        console.error('Failed to load channels:', error)
+        setChannels(defaultChannels as unknown as Channel[])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadChannels()
+  }, [])
+
   // Display all channels (no tabs)
   const displayChannels = channels
 
@@ -146,105 +163,147 @@ export default function ChannelsPage() {
         </Button>
       </motion.div>
 
+      {/* Loading State */}
+      {loading && (
+        <motion.div variants={itemVariants} className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          <span className="ml-3 text-neutral-400">Loading channels...</span>
+        </motion.div>
+      )}
+
       {/* Channel Cards */}
-      <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-3">
-        {displayChannels.map((channel) => {
-          const Icon = channel.icon
-          return (
-            <motion.div
-              key={channel.name}
-              whileHover={{ scale: 1.02, y: -4 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Card className={`border ${channel.borderColor} ${channel.bgColor} backdrop-blur-md`}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`rounded-lg ${channel.bgColor} p-2.5`}>
-                        <Icon className={`h-6 w-6 ${channel.textColor}`} />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg font-semibold text-white">
-                          {channel.name}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="success" className="text-xs bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                            {channel.status}
-                          </Badge>
+      {!loading && displayChannels.length > 0 && (
+        <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-3">
+          {displayChannels.map((channel, index) => {
+            const Icon = iconMap[channel.icon as keyof typeof iconMap] || Mail
+            return (
+              <motion.div
+                key={channel.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02, y: -4 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Card className={`border ${channel.borderColor} ${channel.bgColor} backdrop-blur-md`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`rounded-lg ${channel.bgColor} p-2.5`}>
+                          <Icon className={`h-6 w-6 ${channel.textColor}`} />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-semibold text-white">
+                            {channel.name}
+                          </CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="success" className="text-xs bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              {channel.status}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <CardDescription className="text-neutral-400">
-                    {channel.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-lg bg-neutral-900/50 p-2 text-center">
-                      <p className="text-xs text-neutral-400">Tickets</p>
-                      <p className="text-lg font-bold text-white">{channel.stats.tickets}</p>
+                    <CardDescription className="text-neutral-400">
+                      {channel.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-lg bg-neutral-900/50 p-2 text-center">
+                        <p className="text-xs text-neutral-400">Tickets</p>
+                        <p className="text-lg font-bold text-white">{channel.stats.tickets}</p>
+                      </div>
+                      <div className="rounded-lg bg-neutral-900/50 p-2 text-center">
+                        <p className="text-xs text-neutral-400">Response</p>
+                        <p className="text-lg font-bold text-white">{channel.stats.avgResponseTime}</p>
+                      </div>
+                      <div className="rounded-lg bg-neutral-900/50 p-2 text-center">
+                        <p className="text-xs text-neutral-400">Satisfaction</p>
+                        <p className="text-lg font-bold text-white">{channel.stats.satisfaction}%</p>
+                      </div>
                     </div>
-                    <div className="rounded-lg bg-neutral-900/50 p-2 text-center">
-                      <p className="text-xs text-neutral-400">Response</p>
-                      <p className="text-lg font-bold text-white">{channel.stats.responseTime}</p>
-                    </div>
-                    <div className="rounded-lg bg-neutral-900/50 p-2 text-center">
-                      <p className="text-xs text-neutral-400">Satisfaction</p>
-                      <p className="text-lg font-bold text-white">{channel.stats.satisfaction}%</p>
-                    </div>
-                  </div>
 
-                  {/* Features */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-neutral-400">
-                      <Zap className="h-3.5 w-3.5" />
-                      <span>Features</span>
+                    {/* Features */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-neutral-400">
+                        <Zap className="h-3.5 w-3.5" />
+                        <span>Features</span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {channel.status === 'active' ? (
+                          <>
+                            <li className="flex items-center gap-2 text-xs text-neutral-300">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                              Real-time processing
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-neutral-300">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                              Auto-ticket creation
+                            </li>
+                            <li className="flex items-center gap-2 text-xs text-neutral-300">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                              Message tracking
+                            </li>
+                          </>
+                        ) : (
+                          <li className="text-xs text-neutral-400">Channel inactive</li>
+                        )}
+                      </ul>
                     </div>
-                    <ul className="space-y-1.5">
-                      {channel.features.map((feature) => (
-                        <li key={feature} className="flex items-center gap-2 text-xs text-neutral-300">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
 
-                  {/* Config */}
-                  <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/50 p-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-400">Provider</span>
-                      <span className="text-neutral-200">{channel.config.provider}</span>
+                    {/* Config */}
+                    <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/50 p-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-neutral-400">Provider</span>
+                        <span className="text-neutral-200">{channel.config.provider}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-neutral-400">Webhook</span>
+                        <span className={channel.config.webhook === 'Not configured' ? 'text-amber-400' : 'text-emerald-400'}>
+                          {channel.config.webhook}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-neutral-400">Last Sync</span>
+                        <span className="text-neutral-200">{channel.config.lastSync}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-400">Webhook</span>
-                      <span className="text-emerald-400">{channel.config.webhook}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-400">Last Sync</span>
-                      <span className="text-neutral-200">{channel.config.lastSync}</span>
-                    </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 h-9 text-xs border-neutral-700/50 hover:bg-neutral-800/50">
-                      <Settings className="mr-2 h-3.5 w-3.5" />
-                      Settings
-                    </Button>
-                    <Button variant="ghost" className="h-9 w-9 p-0 hover:bg-neutral-800/50">
-                      <Bell className="h-4 w-4 text-neutral-400" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )
-        })}
-      </motion.div>
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1 h-9 text-xs border-neutral-700/50 hover:bg-neutral-800/50">
+                        <Settings className="mr-2 h-3.5 w-3.5" />
+                        Settings
+                      </Button>
+                      <Button variant="ghost" className="h-9 w-9 p-0 hover:bg-neutral-800/50">
+                        <Bell className="h-4 w-4 text-neutral-400" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )
+          })}
+        </motion.div>
+      )}
+
+      {/* Empty State */}
+      {!loading && displayChannels.length === 0 && (
+        <motion.div variants={itemVariants} className="flex flex-col items-center justify-center py-20">
+          <div className="rounded-full bg-neutral-800/50 p-6 mb-4">
+            <LinkIcon className="h-12 w-12 text-neutral-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">No Channels Found</h3>
+          <p className="text-neutral-400 text-sm mb-4">Configure your first communication channel to get started</p>
+          <Button variant="premium">
+            <Settings className="mr-2 h-4 w-4" />
+            Configure Channel
+          </Button>
+        </motion.div>
+      )}
 
       {/* Integration Guide */}
       <motion.div variants={itemVariants}>
