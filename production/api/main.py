@@ -36,6 +36,12 @@ try:
 except ImportError:
     from api.search_api import router as search_router, set_db_pool as set_search_db_pool
 
+# Import notifications router
+try:
+    from production.api.notifications_api import router as notifications_router, set_db_pool as set_notifications_db_pool
+except ImportError:
+    from api.notifications_api import router as notifications_router, set_db_pool as set_notifications_db_pool
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Customer Success FTE API",
@@ -56,6 +62,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(tickets_router)
 app.include_router(search_router)
+app.include_router(notifications_router)
 
 # ============================================================================
 # SIMPLE TICKETS API - Direct endpoint for frontend
@@ -183,6 +190,12 @@ async def get_db_pool():
                 print("[INFO] Search API db_pool set successfully")
             except Exception as e:
                 print(f"[WARNING] Failed to set search API db_pool: {e}")
+            # Set db_pool for notifications_api module
+            try:
+                set_notifications_db_pool(db_pool)
+                print("[INFO] Notifications API db_pool set successfully")
+            except Exception as e:
+                print(f"[WARNING] Failed to set notifications API db_pool: {e}")
         except Exception as e:
             print(f"[ERROR] Database pool creation failed: {e}")
             raise

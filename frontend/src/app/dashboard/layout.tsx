@@ -27,6 +27,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { quickSearch, type SearchResult } from "@/lib/search"
+import { getNotifications, getUnreadCount, markAsRead, markAllAsRead, type Notification } from "@/lib/notifications"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -46,14 +47,59 @@ export default function DashboardLayout({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const notificationsTimeoutRef = useRef<NodeJS.Timeout>()
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
 
   useEffect(() => {
     setIsMounted(true)
+    
+    // Load initial unread count
+    loadUnreadCount()
+    
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(loadUnreadCount, 30000)
+    return () => clearInterval(interval)
   }, [])
+
+  const loadUnreadCount = async () => {
+    const data = await getUnreadCount()
+    setUnreadCount(data.unread)
+  }
+
+  const loadNotifications = async () => {
+    setIsLoadingNotifications(true)
+    const data = await getNotifications(10)
+    setNotifications(data.notifications)
+    setIsLoadingNotifications(false)
+  }
+
+  const handleNotificationClick = async (notification: Notification, url: string) => {
+    // Mark as read
+    await markAsRead(notification.id)
+    
+    // Update local state
+    setNotifications(prev => 
+      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+    )
+    setUnreadCount(prev => Math.max(0, prev - 1))
+    
+    // Navigate
+    router.push(url)
+    setShowNotifications(false)
+  }
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead()
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    setUnreadCount(0)
+  }
 
   // Debounced search
   useEffect(() => {
@@ -308,10 +354,146 @@ export default function DashboardLayout({
 
           {/* Actions */}
           <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" className="relative h-8 w-8 hover:bg-neutral-800/50">
-              <Bell className="h-4 w-4 text-neutral-400" />
-              <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-red-500 shadow-lg shadow-red-500/50" />
-            </Button>
+            {/* Notifications */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 hover:bg-neutral-800/50"
+                onClick={() => {
+                  setShowNotifications(!showNotifications)
+                  if (!showNotifications) {
+                    loadNotifications()
+                  }
+                }}
+              >
+                <Bell className="h-4 w-4 text-neutral-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg shadow-red-500/50">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+
+              {/* Notifications Dropdown */}
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg border border-neutral-700/50 bg-neutral-900/95 backdrop-blur-xl shadow-2xl z-50"
+                    onBlur={() => setTimeout(() => setShowNotifications(false), 200)}
+                  >
+                    {/* Header */}
+                    <div className="sticky top-0 flex items-center justify-between px-4 py-3 border-b border-neutral-700/50 bg-neutral-900/95 backdrop-blur-xl">
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">Notifications</h3>
+                        <p className="text-xs text-neutral-400">
+                          {unreadCount > 0 ? `${unreadCount} unread` : 'All read'}
+                        </p>
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    {isLoadingNotifications ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+                        <span className="ml-2 text-xs text-neutral-400">Loading...</span>
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Bell className="h-8 w-8 text-neutral-600 mb-2" />
+                        <p className="text-sm text-neutral-400">No notifications</p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          You're all caught up!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="py-2">
+                        {notifications.map((notification) => (
+                          <button
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification, notification.url)}
+                            className={`w-full px-4 py-3 flex gap-3 hover:bg-neutral-800/50 transition-colors text-left border-l-2 ${
+                              !notification.read
+                                ? 'border-cyan-500 bg-cyan-500/5'
+                                : 'border-transparent'
+                            }`}
+                          >
+                            {/* Icon */}
+                            <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                              notification.color === 'red' ? 'bg-red-500/10' :
+                              notification.color === 'blue' ? 'bg-blue-500/10' :
+                              notification.color === 'green' ? 'bg-green-500/10' :
+                              notification.color === 'purple' ? 'bg-purple-500/10' :
+                              'bg-neutral-500/10'
+                            }`}>
+                              {notification.icon === 'alert' && (
+                                <span className="text-sm">🚨</span>
+                              )}
+                              {notification.icon === 'ticket' && (
+                                <span className="text-sm">📬</span>
+                              )}
+                              {notification.icon === 'message' && (
+                                <span className="text-sm">💬</span>
+                              )}
+                              {notification.icon === 'refresh' && (
+                                <span className="text-sm">📝</span>
+                              )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-medium truncate ${
+                                !notification.read ? 'text-white' : 'text-neutral-400'
+                              }`}>
+                                {notification.title}
+                              </p>
+                              <p className="text-xs text-neutral-500 truncate mt-0.5">
+                                {notification.message}
+                              </p>
+                              {notification.timestamp && (
+                                <p className="text-[10px] text-neutral-600 mt-1">
+                                  {new Date(notification.timestamp).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Unread indicator */}
+                            {!notification.read && (
+                              <div className="flex-shrink-0 mt-1">
+                                <div className="h-2 w-2 rounded-full bg-cyan-500" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+
+                        {/* Footer */}
+                        <div className="px-4 py-2 border-t border-neutral-700/50">
+                          <Link
+                            href="/dashboard/tickets"
+                            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors flex items-center justify-center gap-1"
+                          >
+                            View all activity
+                            <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <Link href="/channels">
               <Button variant="premium" className="hidden h-8 text-xs sm:flex">
                 <Mail className="mr-1 h-3.5 w-3.5" />
