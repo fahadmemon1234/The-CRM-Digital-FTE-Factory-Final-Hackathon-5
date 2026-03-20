@@ -99,6 +99,11 @@ export default function DashboardLayout({
     await markAllAsRead()
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     setUnreadCount(0)
+    
+    // Force refresh after a short delay to show updated state
+    setTimeout(() => {
+      loadUnreadCount()
+    }, 1000)
   }
 
   // Debounced search
