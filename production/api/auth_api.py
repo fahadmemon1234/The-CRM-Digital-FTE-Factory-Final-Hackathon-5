@@ -225,27 +225,27 @@ async def login(request: LoginRequest):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Database connection not available"
         )
-    
+
     # Get user from database
     async with db_pool.acquire() as conn:
         user = await conn.fetchrow(
-            "SELECT id, name, email, password_hash, company, created_at FROM users WHERE email = $1",
+            "SELECT id, name, email, password_hash, company, role, created_at FROM users WHERE email = $1",
             request.email
         )
-        
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
-        
+
         # Verify password
         if not verify_password(request.password, user['password_hash']):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
-        
+
         user_id = user['id']
         user_data = {
             "id": str(user['id']),
@@ -255,13 +255,13 @@ async def login(request: LoginRequest):
             "role": user['role'],
             "created_at": user['created_at'].isoformat() if user['created_at'] else None
         }
-    
+
     # Create JWT token
     access_token = create_access_token(
         data={"sub": str(user_id)},
         expires_delta=timedelta(minutes=TOKEN_EXPIRE_MINUTES)
     )
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",

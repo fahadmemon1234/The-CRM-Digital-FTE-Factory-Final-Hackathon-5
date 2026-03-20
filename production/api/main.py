@@ -801,9 +801,9 @@ async def get_channel_metrics():
                 SELECT
                     source_channel as channel,
                     COUNT(*) as total_tickets,
-                    COUNT(*) FILTER (WHERE status = 'open') as open,
-                    COUNT(*) FILTER (WHERE status = 'resolved') as resolved,
-                    COUNT(*) FILTER (WHERE status = 'escalated') as escalated
+                    COUNT(*) FILTER (WHERE UPPER(status) = 'OPEN') as open,
+                    COUNT(*) FILTER (WHERE UPPER(status) = 'RESOLVED') as resolved,
+                    COUNT(*) FILTER (WHERE UPPER(status) = 'ESCALATED') as escalated
                 FROM tickets
                 WHERE created_at > NOW() - INTERVAL '24 hours'
                 GROUP BY source_channel
@@ -827,12 +827,12 @@ async def get_dashboard_stats():
 
             # Resolved tickets
             resolved = await conn.fetchval(
-                "SELECT COUNT(*) FROM tickets WHERE status = 'resolved'"
+                "SELECT COUNT(*) FROM tickets WHERE UPPER(status) = 'RESOLVED'"
             )
 
             # Pending tickets
             pending = await conn.fetchval(
-                "SELECT COUNT(*) FROM tickets WHERE status IN ('open', 'in_progress')"
+                "SELECT COUNT(*) FROM tickets WHERE UPPER(status) IN ('OPEN', 'IN_PROGRESS')"
             )
 
             # Avg response time (mock)
@@ -845,6 +845,88 @@ async def get_dashboard_stats():
                 "avg_response_time": avg_response
             }
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/channels")
+async def get_channels():
+    """Get all communication channels with stats from database"""
+    try:
+        if db_pool is None:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        
+        async with db_pool.acquire() as conn:
+            # Get channel statistics
+            channels_data = await conn.fetch("""
+                SELECT
+                    source_channel as channel,
+                    COUNT(*) as total_tickets,
+                    COUNT(*) FILTER (WHERE status = 'OPEN' OR status = 'PENDING') as active_tickets,
+                    COUNT(*) FILTER (WHERE status = 'RESOLVED') as resolved_tickets
+                FROM tickets
+                GROUP BY source_channel
+            """)
+            
+            # Build channels response
+            channels = []
+            channel_map = {
+                'email': {'name': 'Email', 'color': '#3b82f6'},
+                'whatsapp': {'name': 'WhatsApp', 'color': '#22c55e'},
+                'web_form': {'name': 'Web Form', 'color': '#8b5cf6'},
+                'gmail': {'name': 'Email', 'color': '#3b82f6'}
+            }
+            
+            # Aggregate email and gmail
+            aggregated = {}
+            for row in channels_data:
+                channel = row['channel'] or 'web_form'
+                if channel.lower() in ['email', 'gmail']:
+                    key = 'email'
+                else:
+                    key = channel.lower()
+                
+                if key not in aggregated:
+                    aggregated[key] = {
+                        'total': 0,
+                        'active': 0,
+                        'resolved': 0
+                    }
+                aggregated[key]['total'] += row['total_tickets'] or 0
+                aggregated[key]['active'] += row['active_tickets'] or 0
+                aggregated[key]['resolved'] += row['resolved_tickets'] or 0
+            
+            # Build final response
+            for key, data in aggregated.items():
+                info = channel_map.get(key, {'name': key, 'color': '#8b5cf6'})
+                channels.append({
+                    'name': info['name'],
+                    'status': 'active',
+                    'color': info['color'],
+                    'stats': {
+                        'tickets': data['total'],
+                        'active': data['active'],
+                        'resolved': data['resolved']
+                    }
+                })
+            
+            # Ensure all 3 channels are present
+            existing = {c['name'].lower() for c in channels}
+            for default_key, default_info in channel_map.items():
+                if default_info['name'].lower() not in existing and default_key in ['email', 'whatsapp', 'web_form']:
+                    channels.append({
+                        'name': default_info['name'],
+                        'status': 'inactive',
+                        'color': default_info['color'],
+                        'stats': {
+                            'tickets': 0,
+                            'active': 0,
+                            'resolved': 0
+                        }
+                    })
+            
+            return {"channels": channels}
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
