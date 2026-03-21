@@ -18,125 +18,70 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo ✓ Docker is running
+echo [OK] Docker is running
 echo.
 
-REM Step 1: Stop any existing containers
-echo [1/6] Cleaning up existing containers...
+REM Step 1: Start all backend services (Docker Compose)
+echo [1/4] Starting Backend Services (Docker Compose)...
 cd /d "%~dp0production"
-docker-compose down >nul 2>&1
-echo ✓ Cleanup complete
-echo.
 
-REM Step 2: Start PostgreSQL
-echo [2/6] Starting PostgreSQL Database...
-docker-compose up -d postgres
-if errorlevel 1 (
-    echo ERROR: Failed to start PostgreSQL
-    pause
-    exit /b 1
-)
-echo ✓ PostgreSQL started
-echo.
+if exist "docker-compose.yml" (
+    echo Starting Docker containers...
+    docker-compose up -d
 
-REM Step 3: Wait for PostgreSQL to be ready
-echo [3/6] Waiting for PostgreSQL to initialize...
-echo      This may take 30-60 seconds...
-echo.
-
-:wait_loop
-timeout /t 5 /nobreak >nul
-docker exec fte-postgres psql -U fte_user -d fte_db -c "SELECT 1;" >nul 2>&1
-if errorlevel 1 (
-    echo      Still waiting for PostgreSQL...
-    goto wait_loop
-)
-echo ✓ PostgreSQL is ready
-echo.
-
-REM Step 4: Load Database Schema
-echo [4/6] Setting up database schema...
-type database\schema.sql | docker exec -i fte-postgres psql -U fte_user -d fte_db >nul 2>&1
-if errorlevel 1 (
-    echo Note: Schema may already exist
-) else (
-    echo ✓ Database schema created
-)
-echo.
-
-REM Step 5: Load Seed Data
-echo [5/6] Loading seed data...
-if exist "database\seed.sql\seed_data.sql" (
-    type database\seed.sql\seed_data.sql | docker exec -i fte-postgres psql -U fte_user -d fte_db >nul 2>&1
     if errorlevel 1 (
-        echo Note: Seed data may already exist
-    ) else (
-        echo ✓ Seed data loaded
+        echo ERROR: Failed to start Docker containers
+        pause
+        exit /b 1
     )
+
+    echo [OK] Backend services started!
+    echo.
+    echo Backend URLs:
+    echo   - API: http://localhost:8000
+    echo   - API Docs: http://localhost:8000/docs
+    echo   - ReDoc: http://localhost:8000/redoc
+    echo.
+    
+    REM Wait for backend to be ready
+    echo Waiting for backend to be ready...
+    timeout /t 10 /nobreak >nul
 ) else (
-    echo Note: Seed data file not found
+    echo [WARNING] docker-compose.yml not found in production folder
+    echo.
 )
-echo.
 
-REM Step 6: Verify Database
-echo [6/6] Verifying database setup...
-for /f "tokens=*" %%i in ('docker exec fte-postgres psql -U fte_user -d fte_db -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2^>nul') do set TABLE_COUNT=%%i
-echo ✓ Database has %TABLE_COUNT% tables
-echo.
-
-REM Show connection details
-echo ========================================================================
-echo  DATABASE CONNECTION DETAILS (for pgAdmin 4)
-echo ========================================================================
-echo.
-echo Host:     localhost
-echo Port:     5432
-echo Database: fte_db
-echo Username: fte_user
-echo Password: fte_password
-echo.
-echo ========================================================================
-echo  STARTING FRONTEND
-echo ========================================================================
-echo.
-
+REM Step 2: Go to frontend directory
+echo [2/4] Setting up Frontend...
 cd /d "%~dp0frontend"
 
-REM Check if node_modules exists
+REM Step 3: Check if node_modules exists
 if not exist "node_modules" (
-    echo Installing dependencies...
+    echo [3/4] Installing dependencies...
     call npm install
     if errorlevel 1 (
         echo ERROR: npm install failed
         pause
         exit /b 1
     )
-    echo ✓ Dependencies installed
+    echo [OK] Dependencies installed
+    echo.
+) else (
+    echo [OK] Dependencies already installed
     echo.
 )
 
-REM Start Frontend
-echo Starting Next.js development server...
-echo Frontend will be available at: http://localhost:3000
+REM Step 4: Start Frontend
+echo [4/4] Starting Next.js development server...
 echo.
 echo ========================================================================
 echo  PROJECT IS RUNNING!
 echo ========================================================================
 echo.
-echo ✓ PostgreSQL: Running (port 5432)
-echo ✓ Database:   fte_db (%TABLE_COUNT% tables)
-echo ✓ Frontend:   Starting...
-echo.
 echo Access URLs:
 echo   Frontend:  http://localhost:3000
-echo   API Docs:  http://localhost:8000/docs (when backend starts)
-echo.
-echo pgAdmin 4 Connection:
-echo   Host:     localhost
-echo   Port:     5432
-echo   Database: fte_db
-echo   Username: fte_user
-echo   Password: fte_password
+echo   Backend API: http://localhost:8000
+echo   API Docs:  http://localhost:8000/docs
 echo.
 echo ========================================================================
 echo  Press Ctrl+C to stop the frontend

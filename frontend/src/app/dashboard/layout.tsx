@@ -81,14 +81,18 @@ export default function DashboardLayout({
   }
 
   const handleNotificationClick = async (notification: Notification, url: string) => {
-    // Mark as read
-    await markAsRead(notification.id)
-    
-    // Update local state
-    setNotifications(prev => 
-      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
-    )
-    setUnreadCount(prev => Math.max(0, prev - 1))
+    // Mark as read if it's unread
+    if (!notification.read) {
+      await markSingleAsRead(notification.id)
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+      )
+      
+      // Recalculate unread count
+      loadUnreadCount()
+    }
     
     // Navigate
     router.push(url)
@@ -97,12 +101,18 @@ export default function DashboardLayout({
 
   const handleMarkAllRead = async () => {
     await markAllAsRead()
+
+    // Mark all local notifications as read (but keep them visible)
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     setUnreadCount(0)
-    
+
+    // Clear localStorage since all are read now
+    localStorage.setItem('read_notifications', '[]')
+
     // Force refresh after a short delay to show updated state
     setTimeout(() => {
       loadUnreadCount()
+      loadNotifications()
     }, 1000)
   }
 

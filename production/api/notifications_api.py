@@ -1,19 +1,19 @@
 """
 TechCorp Customer Success AI Agent - Notifications API
-
-Real-time notifications for:
-- New tickets
-- Ticket status updates
-- New messages
-- Customer inquiries
+UPDATED: Database-backed notifications with mark-as-read support
 """
 
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import asyncpg
+import sys
+
+print("[NOTIFICATIONS API] Loading notifications_api.py module...", file=sys.stderr)
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
+
+print("[NOTIFICATIONS API] Router created with prefix /api/notifications", file=sys.stderr)
 
 # Database pool
 db_pool = None
@@ -68,6 +68,14 @@ NOTIFICATION_TYPES = {
 # API Endpoints
 # ============================================================================
 
+@router.get("/debug")
+async def debug_notifications():
+    """Debug endpoint to check db_pool status"""
+    return {
+        'db_pool': 'connected' if db_pool is not None else 'NOT CONNECTED',
+        'db_pool_type': type(db_pool).__name__ if db_pool else None
+    }
+
 @router.get("")
 async def get_notifications(
     limit: int = Query(20, ge=1, le=100, description="Max notifications to return"),
@@ -75,181 +83,87 @@ async def get_notifications(
     type_filter: Optional[str] = Query(None, description="Filter by notification type")
 ):
     """
-    Get user notifications based on recent activity.
-    
-    This generates notifications from:
-    - Recent tickets (last 24 hours)
-    - Unread messages
-    - Ticket status changes
-    - Urgent/high priority items
+    Get user notifications from database.
     """
     if db_pool is None:
         raise HTTPException(status_code=503, detail="Database connection not available")
-    
+
     try:
         async with db_pool.acquire() as conn:
-            notifications = []
-            
-            # Get recent tickets (last 24 hours)
-            recent_tickets = await conn.fetch(f"""
-                SELECT 
-                    t.id, t.subject, t.status, t.priority, t.source_channel, t.created_at,
-                    c.name as customer_name, c.email as customer_email
-                FROM tickets t
-                LEFT JOIN customers c ON t.customer_id = c.id
-                WHERE t.created_at >= NOW() - INTERVAL '24 hours'
-                ORDER BY t.created_at DESC
-                LIMIT {int(limit)}
-            """)
-            
-            for ticket in recent_tickets:
-                ticket_id = str(ticket['id'])
-                is_urgent = ticket['priority'] in ['CRITICAL', 'HIGH'] or 'urgent' in (ticket['subject'] or '').lower()
-                
-                notifications.append({
-                    'id': f"notif_ticket_{ticket_id}",
-                    'type': 'URGENT_TICKET' if is_urgent else 'NEW_TICKET',
-                    'title': '🚨 Urgent Ticket' if is_urgent else '📬 New Ticket',
-                    'message': f"{ticket['customer_name'] or ticket['customer_email']} created a ticket: {ticket['subject'] or 'Support Request'}",
-                    'timestamp': ticket['created_at'].isoformat() if ticket['created_at'] else None,
-                    'read': False,
-                    'icon': 'alert' if is_urgent else 'ticket',
-                    'color': 'red' if is_urgent else 'blue',
-                    'url': f"/dashboard/tickets/{ticket_id}",
+            # Build query based on unread_only flag
+            if unread_only:
+                # Get only unread notifications from database
+                notifications = await conn.fetch(f"""
+                    SELECT
+                        id, notification_type, title, message, url,
+                        is_read, created_at, reference_id, reference_type, metadata
+                    FROM notifications
+                    WHERE is_read = FALSE
+                    ORDER BY created_at DESC
+                    LIMIT {int(limit)}
+                """)
+            else:
+                # Get all notifications from database
+                notifications = await conn.fetch(f"""
+                    SELECT
+                        id, notification_type, title, message, url,
+                        is_read, created_at, reference_id, reference_type, metadata
+                    FROM notifications
+                    ORDER BY created_at DESC
+                    LIMIT {int(limit)}
+                """)
+
+            # Convert to response format
+            result = []
+            for notif in notifications:
+                metadata = notif['metadata'] or {}
+                result.append({
+                    'id': str(notif['id']),
+                    'type': notif['notification_type'],
+                    'title': notif['title'],
+                    'message': notif['message'],
+                    'timestamp': notif['created_at'].isoformat() if notif['created_at'] else None,
+                    'read': notif['is_read'],
+                    'icon': metadata.get('icon', 'bell'),
+                    'color': metadata.get('color', 'blue'),
+                    'url': notif['url'] or '/dashboard',
                     'data': {
-                        'ticket_id': ticket_id,
-                        'subject': ticket['subject'],
-                        'customer': ticket['customer_name'] or ticket['customer_email'],
-                        'channel': ticket['source_channel']
+                        'reference_id': notif['reference_id'],
+                        'reference_type': notif['reference_type'],
+                        **metadata
                     }
                 })
-            
-            # Get tickets with recent status changes (updated in last 6 hours)
-            updated_tickets = await conn.fetch(f"""
-                SELECT 
-                    t.id, t.subject, t.status, t.updated_at,
-                    c.name as customer_name
-                FROM tickets t
-                LEFT JOIN customers c ON t.customer_id = c.id
-                WHERE t.updated_at >= NOW() - INTERVAL '6 hours'
-                    AND t.created_at < NOW() - INTERVAL '1 hour'
-                ORDER BY t.updated_at DESC
-                LIMIT {int(limit)}
-            """)
-            
-            for ticket in updated_tickets[:5]:  # Limit to 5
-                ticket_id = str(ticket['id'])
-                notifications.append({
-                    'id': f"notif_update_{ticket_id}",
-                    'type': 'TICKET_UPDATED',
-                    'title': '📝 Ticket Updated',
-                    'message': f"Ticket '{ticket['subject'] or ticket_id}' status changed to {ticket['status']}",
-                    'timestamp': ticket['updated_at'].isoformat() if ticket['updated_at'] else None,
-                    'read': False,
-                    'icon': 'refresh',
-                    'color': 'purple',
-                    'url': f"/dashboard/tickets/{ticket_id}",
-                    'data': {
-                        'ticket_id': ticket_id,
-                        'status': ticket['status']
-                    }
-                })
-            
-            # Get recent messages (last 6 hours)
-            messages_limit = int(min(limit, 10))
-            recent_messages = await conn.fetch(f"""
-                SELECT 
-                    m.id, m.content, m.channel, m.timestamp, m.ticket_id,
-                    t.subject as ticket_subject
-                FROM messages m
-                LEFT JOIN tickets t ON m.ticket_id = t.id
-                WHERE m.timestamp >= NOW() - INTERVAL '6 hours'
-                    AND m.sender = 'CUSTOMER'
-                ORDER BY m.timestamp DESC
-                LIMIT {messages_limit}
-            """)
-            
-            for message in recent_messages:
-                message_id = str(message['id'])
-                ticket_id = str(message['ticket_id']) if message.get('ticket_id') else None
-                
-                # Truncate message content
-                content = message['content'] or ''
-                content_preview = content[:80] + '...' if len(content) > 80 else content
-                
-                notifications.append({
-                    'id': f"notif_message_{message_id}",
-                    'type': 'NEW_MESSAGE',
-                    'title': '💬 New Message',
-                    'message': f"New message: \"{content_preview}\"",
-                    'timestamp': message['timestamp'].isoformat() if message['timestamp'] else None,
-                    'read': False,
-                    'icon': 'message',
-                    'color': 'green',
-                    'url': f"/dashboard/tickets/{ticket_id}" if ticket_id else "/dashboard/tickets",
-                    'data': {
-                        'message_id': message_id,
-                        'ticket_id': ticket_id,
-                        'channel': message['channel']
-                    }
-                })
-            
-            # Sort by timestamp (newest first)
-            notifications.sort(
-                key=lambda x: x['timestamp'] or '',
-                reverse=True
-            )
-            
-            # Limit results
-            notifications = notifications[:limit]
-            
+
             # Count unread
-            unread_count = len([n for n in notifications if not n['read']])
-            
+            unread_count = len([n for n in result if not n['read']])
+
             return {
-                'notifications': notifications,
-                'total': len(notifications),
+                'notifications': result,
+                'total': len(result),
                 'unread': unread_count,
-                'has_more': len(notifications) == limit
+                'has_more': len(result) == limit
             }
-            
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get notifications: {str(e)}")
 
 
 @router.get("/unread-count")
 async def get_unread_count():
-    """Get count of unread notifications"""
+    """Get count of unread notifications from database"""
     if db_pool is None:
         return {'unread': 0}
-    
+
     try:
         async with db_pool.acquire() as conn:
-            # Count recent tickets (last 24 hours)
-            recent_tickets = await conn.fetchval("""
-                SELECT COUNT(*) FROM tickets 
-                WHERE created_at >= NOW() - INTERVAL '24 hours'
+            # Count unread notifications from database
+            unread = await conn.fetchval("""
+                SELECT COUNT(*) FROM notifications
+                WHERE is_read = FALSE
             """)
-            
-            # Count recent messages (last 6 hours from customers)
-            recent_messages = await conn.fetchval("""
-                SELECT COUNT(*) FROM messages 
-                WHERE timestamp >= NOW() - INTERVAL '6 hours'
-                AND sender = 'CUSTOMER'
-            """)
-            
-            # Count updated tickets (last 6 hours)
-            updated_tickets = await conn.fetchval("""
-                SELECT COUNT(*) FROM tickets 
-                WHERE updated_at >= NOW() - INTERVAL '6 hours'
-                AND created_at < NOW() - INTERVAL '1 hour'
-            """)
-            
-            # Total unread (cap at 99)
-            unread = int(recent_tickets) + int(recent_messages) + int(updated_tickets)
-            
-            return {'unread': min(unread, 99)}
-            
+
+            return {'unread': int(unread)}
+
     except Exception as e:
         return {'unread': 0}
 
@@ -260,27 +174,66 @@ async def mark_notification_read(
     user_id: Optional[str] = None
 ):
     """
-    Mark a notification as read.
-    
-    In a full implementation, this would update a notifications table.
-    For now, it's a no-op since we generate notifications dynamically.
+    Mark a notification as read in database.
     """
-    return {
-        'success': True,
-        'message': 'Notification marked as read',
-        'notification_id': notification_id
-    }
+    if db_pool is None:
+        raise HTTPException(status_code=503, detail="Database connection not available")
+
+    try:
+        async with db_pool.acquire() as conn:
+            # Update notification to mark as read
+            await conn.execute("""
+                UPDATE notifications
+                SET is_read = TRUE, read_at = NOW()
+                WHERE id = $1
+            """, notification_id)
+
+            return {
+                'success': True,
+                'message': 'Notification marked as read',
+                'notification_id': notification_id
+            }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to mark notification as read: {str(e)}")
 
 
 @router.post("/mark-all-read")
 async def mark_all_read(
     user_id: Optional[str] = None
 ):
-    """Mark all notifications as read"""
-    return {
-        'success': True,
-        'message': 'All notifications marked as read'
-    }
+    """Mark all notifications as read in database"""
+    if db_pool is None:
+        raise HTTPException(status_code=503, detail="Database connection not available")
+
+    try:
+        async with db_pool.acquire() as conn:
+            # First count unread notifications
+            unread_count = await conn.fetchval("""
+                SELECT COUNT(*) FROM notifications
+                WHERE is_read = FALSE
+            """)
+
+            # Mark all notifications as read
+            await conn.execute("""
+                UPDATE notifications
+                SET is_read = TRUE, read_at = NOW()
+                WHERE is_read = FALSE
+            """)
+
+            print(f"[NOTIFICATIONS] Marked {unread_count} notifications as read")
+
+            return {
+                'success': True,
+                'message': 'All notifications marked as read',
+                'updated_count': int(unread_count)
+            }
+
+    except Exception as e:
+        print(f"[NOTIFICATIONS ERROR] Failed to mark all as read: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to mark all notifications as read: {str(e)}")
 
 
 @router.get("/stats")
