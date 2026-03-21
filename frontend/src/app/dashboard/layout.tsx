@@ -27,7 +27,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { quickSearch, type SearchResult } from "@/lib/search"
-import { getNotifications, getUnreadCount, markAsRead, markAllAsRead, type Notification } from "@/lib/notifications"
+import { getNotifications, getUnreadCount, markAsRead, markAllAsRead, markSingleAsRead, type Notification } from "@/lib/notifications"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -51,8 +51,8 @@ export default function DashboardLayout({
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
-  const searchTimeoutRef = useRef<NodeJS.Timeout>()
-  const notificationsTimeoutRef = useRef<NodeJS.Timeout>()
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const notificationsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()

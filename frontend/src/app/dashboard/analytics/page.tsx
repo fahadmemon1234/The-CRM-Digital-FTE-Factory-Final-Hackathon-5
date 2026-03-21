@@ -250,7 +250,7 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {displayKpis.map((kpi, index) => (
+        {displayKpis.map((kpi: any, index: number) => (
           <motion.div
             key={kpi.title}
             initial={{ opacity: 0, y: 20 }}
