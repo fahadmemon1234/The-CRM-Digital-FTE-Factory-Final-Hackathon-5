@@ -1,0 +1,49 @@
+# Hugging Face Spaces - TechCorp Backend
+# Optimized Dockerfile for HF Spaces
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first (better caching)
+COPY requirements.txt .
+
+# Install Python dependencies (minimal for API)
+RUN pip install --no-cache-dir \
+    fastapi>=0.109.0 \
+    uvicorn[standard]>=0.27.0 \
+    pydantic>=2.5.0 \
+    pydantic-settings>=2.1.0 \
+    openai>=1.10.0 \
+    asyncpg>=0.29.0 \
+    sqlalchemy>=2.0.0 \
+    python-dotenv>=1.0.0 \
+    httpx>=0.26.0 \
+    python-json-logger>=2.0.0
+
+# Copy production code
+COPY production/ ./production/
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV HOST=0.0.0.0
+ENV PORT=${PORT:-7860}
+ENV APP_ENV=production
+ENV LOG_LEVEL=INFO
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Expose port (HF uses 7860)
+EXPOSE 7860
+
+# Run the API
+CMD ["uvicorn", "production.api.main:app", "--host", "0.0.0.0", "--port", "7860"]

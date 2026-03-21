@@ -1,0 +1,27 @@
+# TechCorp Backend - Hugging Face Spaces
+# Minimal requirements for API deployment
+
+# Core Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# OpenAI
+openai>=1.10.0
+
+# Database
+asyncpg>=0.29.0
+sqlalchemy>=2.0.0
+
+# HTTP Client
+httpx>=0.26.0
+
+# Environment
+python-dotenv>=1.0.0
+python-json-logger>=2.0.0
+
+# Optional: For production
+# gunicorn>=21.0.0

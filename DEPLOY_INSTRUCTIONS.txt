@@ -1,0 +1,49 @@
+# ============================================
+# Hugging Face Deployment - Quick Copy Guide
+# ============================================
+
+# FOLDERS TO COPY:
+# From: D:\GIAIC\Hackathon 5\
+# To:   D:\GIAIC\AI-Powered-Customer-Success-FTE\
+
+✅ COPY THESE:
+1. production/          → Complete folder
+2. requirements.txt     → From production folder
+3. Dockerfile.huggingface → Rename to Dockerfile
+4. .env.example         → From production folder
+
+❌ DON'T COPY:
+1. frontend/            → Too large
+2. node_modules/        → Not needed
+3. .next/               → Frontend build
+4. __pycache__/         → Python cache
+
+# ============================================
+# MANUAL STEPS (Easy Method)
+# ============================================
+
+Step 1: Open File Explorer
+Step 2: Go to: D:\GIAIC\Hackathon 5\
+Step 3: Copy these items:
+   - production folder (right-click → Copy)
+   - requirements.txt (from production folder)
+   - Dockerfile.huggingface (rename to Dockerfile)
+   - .env.example (from production folder)
+
+Step 4: Go to: D:\GIAIC\AI-Powered-Customer-Success-FTE\
+Step 5: Paste all files (right-click → Paste)
+
+Step 6: Open Git Bash in AI-Powered-Customer-Success-FTE folder
+Step 7: Run these commands:
+   git add .
+   git commit -m "Deploy TechCorp Backend"
+   git push origin main
+
+# ============================================
+# OR RUN THE BATCH FILE (Automatic)
+# ============================================
+
+Double-click: copy-for-huggingface.bat
+Then manually commit and push to Git
+
+# ============================================
