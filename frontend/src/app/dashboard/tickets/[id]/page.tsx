@@ -210,8 +210,9 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
     try {
       console.log("📤 Updating status...", { ticket_id: unwrappedParams.id, status: newStatus })
-      
-      const response = await fetch("http://localhost:8000/api/tickets/status", {
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/tickets/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
