@@ -36,9 +36,10 @@ export default function SupportFormPage() {
     
     try {
       console.log("📤 Submitting form...", formData)
-      
+
       // API call to backend
-      const response = await fetch("http://localhost:8000/support/submit", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/support/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)

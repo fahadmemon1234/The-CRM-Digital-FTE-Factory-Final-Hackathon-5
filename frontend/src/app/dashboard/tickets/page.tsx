@@ -131,7 +131,8 @@ export default function TicketsPage() {
   const fetchTickets = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('http://localhost:8000/api/tickets', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/tickets`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -147,7 +148,7 @@ export default function TicketsPage() {
       setTickets(data.tickets || [])
 
       // Fetch stats from API endpoint for accuracy
-      const statsResponse = await fetch('http://localhost:8000/api/tickets/stats', {
+      const statsResponse = await fetch(`${apiUrl}/api/tickets/stats`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

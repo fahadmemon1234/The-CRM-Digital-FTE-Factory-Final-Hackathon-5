@@ -54,13 +54,15 @@ export default function AnalyticsPage() {
     try {
       setLoading(true)
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
       // Fetch all analytics data in parallel
       const [kpisRes, volumeRes, sentimentRes, categoryRes, channelsRes] = await Promise.all([
-        fetch('http://localhost:8000/api/analytics/kpis'),
-        fetch('http://localhost:8000/api/analytics/volume-trend'),
-        fetch('http://localhost:8000/api/analytics/sentiment'),
-        fetch('http://localhost:8000/api/analytics/category-trends'),
-        fetch('http://localhost:8000/api/tickets/channels')
+        fetch(`${apiUrl}/api/analytics/kpis`),
+        fetch(`${apiUrl}/api/analytics/volume-trend`),
+        fetch(`${apiUrl}/api/analytics/sentiment`),
+        fetch(`${apiUrl}/api/analytics/category-trends`),
+        fetch(`${apiUrl}/api/tickets/channels`)
       ])
 
       const kpisData = await kpisRes.json()

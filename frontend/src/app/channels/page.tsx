@@ -71,11 +71,12 @@ export default function ChannelsPage() {
     try {
       console.log("📤 Creating ticket...", { channel: selectedChannel, ...formData })
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       let response
 
       if (selectedChannel === "whatsapp") {
         // WhatsApp: Send via webhook
-        response = await fetch("http://localhost:8000/webhooks/whatsapp", {
+        response = await fetch(`${apiUrl}/webhooks/whatsapp`, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
@@ -86,7 +87,7 @@ export default function ChannelsPage() {
         })
       } else if (selectedChannel === "email") {
         // Email: Send via webhook
-        response = await fetch("http://localhost:8000/webhooks/email", {
+        response = await fetch(`${apiUrl}/webhooks/email`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -98,7 +99,7 @@ export default function ChannelsPage() {
         })
       } else {
         // Web Form: Use support submit endpoint
-        response = await fetch("http://localhost:8000/support/submit", {
+        response = await fetch(`${apiUrl}/support/submit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

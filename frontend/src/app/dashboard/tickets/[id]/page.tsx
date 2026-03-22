@@ -104,8 +104,9 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     try {
       setLoading(true)
       console.log("📤 Fetching ticket:", unwrappedParams.id)
-      
-      const response = await fetch(`http://localhost:8000/api/tickets/${unwrappedParams.id}`)
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/tickets/${unwrappedParams.id}`)
       console.log("📥 Response status:", response.status)
       
       if (response.ok) {
@@ -145,9 +146,11 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     setSubmitting(true)
     try {
       console.log("📤 Sending response...", { ticket_id: unwrappedParams.id, message: response })
-      
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
       // First update status to IN_PROGRESS
-      await fetch("http://localhost:8000/api/tickets/status", {
+      await fetch(`${apiUrl}/api/tickets/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -155,9 +158,9 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
           status: "IN_PROGRESS"
         })
       })
-      
+
       // Then send the response
-      const responsePayload = await fetch("http://localhost:8000/api/tickets/response", {
+      const responsePayload = await fetch(`${apiUrl}/api/tickets/response`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
