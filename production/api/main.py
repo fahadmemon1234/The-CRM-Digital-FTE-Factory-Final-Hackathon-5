@@ -12,6 +12,7 @@ import uuid
 import asyncpg
 import os
 import json
+import sys
 from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
 
