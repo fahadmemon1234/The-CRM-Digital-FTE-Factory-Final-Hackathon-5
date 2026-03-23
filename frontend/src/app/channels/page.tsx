@@ -35,12 +35,21 @@ const CHANNELS = [
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/30",
     description: "Receive response via email"
+  },
+  {
+    id: "web_form",
+    name: "Web Form",
+    icon: Globe,
+    color: "from-purple-500 to-pink-500",
+    bgColor: "bg-purple-500/10",
+    borderColor: "border-purple-500/30",
+    description: "Submit via web form"
   }
 ]
 
 export default function ChannelsPage() {
   const router = useRouter()
-  const [selectedChannel, setSelectedChannel] = useState<string>("email")
+  const [selectedChannel, setSelectedChannel] = useState<string>("web_form")
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -86,6 +95,19 @@ export default function ChannelsPage() {
             name: formData.name,
             subject: formData.subject,
             body: formData.message
+          })
+        })
+      } else {
+        // Web Form: Use support submit endpoint
+        response = await fetch(`${apiUrl}/support/submit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            category: formData.category.toLowerCase(),
+            message: formData.message
           })
         })
       }

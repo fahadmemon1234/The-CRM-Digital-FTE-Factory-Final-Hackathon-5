@@ -68,6 +68,26 @@ const defaultChannels = [
       webhook: "Not configured",
       lastSync: "Never"
     }
+  },
+  {
+    name: "Web Form",
+    icon: "MessageSquare" as const,
+    status: "active" as const,
+    description: "Embedded support form for your website",
+    color: "#8b5cf6",
+    bgColor: "bg-purple-500/10",
+    borderColor: "border-purple-500/30",
+    textColor: "text-purple-400",
+    stats: {
+      tickets: 0,
+      avgResponseTime: "0m",
+      satisfaction: 0
+    },
+    config: {
+      provider: "FastAPI",
+      webhook: "N/A",
+      lastSync: "Real-time"
+    }
   }
 ]
 
