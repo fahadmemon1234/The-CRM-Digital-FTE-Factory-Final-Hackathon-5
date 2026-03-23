@@ -169,16 +169,16 @@ export default function DashboardPage() {
       className="space-y-4"
     >
       {/* Page Header */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white lg:text-3xl">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white lg:text-3xl">
             Dashboard
           </h1>
           <p className="mt-0.5 text-xs text-neutral-400 lg:text-sm">
             {loading ? 'Loading real-time data...' : 'Real-time data from database'}
           </p>
           {isAdmin && (
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
               <Badge variant="success" className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 text-xs px-2 py-0.5">
                 <CheckCircle2 className="mr-1 h-3 w-3" />
                 Admin Access
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             </div>
           )}
           {!isAdmin && (
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
               <Badge variant="default" className="bg-neutral-800 text-neutral-400 border border-neutral-700 text-xs px-2 py-0.5">
                 User Access
               </Badge>
@@ -195,16 +195,16 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* User Info */}
           {user && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+            <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold flex-shrink-0">
                 {user.name.charAt(0).toUpperCase()}
               </div>
-              <div className="text-xs">
-                <p className="font-medium text-white">{user.name}</p>
-                <p className="text-neutral-400">{user.email}</p>
+              <div className="text-xs min-w-0">
+                <p className="font-medium text-white truncate text-xs sm:text-sm">{user.name}</p>
+                <p className="text-neutral-400 truncate hidden sm:block">{user.email}</p>
               </div>
             </div>
           )}
