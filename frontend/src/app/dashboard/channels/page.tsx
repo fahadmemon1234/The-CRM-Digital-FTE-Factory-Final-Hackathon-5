@@ -274,11 +274,7 @@ export default function ChannelsPage() {
 
                     {/* Actions */}
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1 h-9 text-xs border-neutral-700/50 hover:bg-neutral-800/50">
-                        <Settings className="mr-2 h-3.5 w-3.5" />
-                        Settings
-                      </Button>
-                      <Button variant="ghost" className="h-9 w-9 p-0 hover:bg-neutral-800/50">
+                      <Button variant="ghost" className="h-9 w-9 p-0 hover:bg-neutral-800/50 ml-auto">
                         <Bell className="h-4 w-4 text-neutral-400" />
                       </Button>
                     </div>
