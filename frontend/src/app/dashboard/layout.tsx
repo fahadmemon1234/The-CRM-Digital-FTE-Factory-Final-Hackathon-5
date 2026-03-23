@@ -84,18 +84,21 @@ export default function DashboardLayout({
     // Mark as read if it's unread
     if (!notification.read) {
       await markSingleAsRead(notification.id)
-      
+
       // Update local state
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
       )
-      
+
       // Recalculate unread count
       loadUnreadCount()
     }
+
+    // Fix URL if it's missing /dashboard prefix
+    const fixedUrl = url.startsWith('/dashboard') ? url : `/dashboard${url}`
     
     // Navigate
-    router.push(url)
+    router.push(fixedUrl)
     setShowNotifications(false)
   }
 
