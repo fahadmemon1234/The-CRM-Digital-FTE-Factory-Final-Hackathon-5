@@ -731,6 +731,7 @@ async def submit_support_form(
 
             # Step 6: Create notification for new ticket (for dashboard unread count)
             print(f"[INFO] Creating notification for new ticket")
+            print(f"[DEBUG] ticket_id value: {ticket_id}")
 
             notification_id = str(uuid_module.uuid4())
             await conn.execute("""
@@ -738,14 +739,14 @@ async def submit_support_form(
                     id, notification_type, title, message, url,
                     is_read, reference_id, reference_type, metadata, created_at
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-            """, 
-                notification_id, 
+            """,
+                notification_id,
                 'NEW_TICKET',
                 'New Ticket Received',
                 f'Ticket {ticket_id} created: {submission.subject}',
-                f'/dashboard/tickets/{ticket_id}',
+                f'/dashboard/tickets/{ticket_id}',  # URL with correct ticket_id
                 False,  # is_read = FALSE (unread)
-                ticket_id,  # reference_id
+                ticket_id,  # reference_id = ticket_id (not UUID)
                 'ticket',  # reference_type
                 {
                     'ticket_id': ticket_id,
@@ -759,6 +760,7 @@ async def submit_support_form(
             )
 
             print(f"[INFO] Notification created: {notification_id}")
+            print(f"[INFO] Notification URL: /dashboard/tickets/{ticket_id}")
 
         print(f"[INFO] All operations completed successfully!")
 
