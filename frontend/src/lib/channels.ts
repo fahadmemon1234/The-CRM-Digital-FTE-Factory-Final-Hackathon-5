@@ -64,16 +64,23 @@ const channelProviders: Record<string, string> = {
 
 /**
  * Transform backend response to frontend format
+ * Returns null for unknown channels (they will be filtered out)
  */
-function transformChannel(backend: BackendChannel): Channel {
+function transformChannel(backend: BackendChannel): Channel | null {
   const name = backend.name;
+  
+  // Only allow known channels
+  if (!channelDescriptions[name]) {
+    return null;
+  }
+  
   const color = backend.color || '#8b5cf6';
   const isActive = backend.status === 'active';
-  
+
   return {
     name,
     status: backend.status as 'active' | 'inactive' | 'error',
-    description: channelDescriptions[name] || 'Communication channel',
+    description: channelDescriptions[name],
     color,
     bgColor: `bg-[${color}]/10`,
     borderColor: `border-[${color}]/30`,
@@ -85,7 +92,7 @@ function transformChannel(backend: BackendChannel): Channel {
       satisfaction: isActive ? Math.floor(Math.random() * 10) + 85 : 0
     },
     config: {
-      provider: channelProviders[name] || 'Unknown',
+      provider: channelProviders[name],
       webhook: isActive ? 'Configured' : 'Not configured',
       lastSync: isActive ? 'Real-time' : 'Never'
     }
@@ -109,9 +116,11 @@ export async function getChannels(): Promise<Channel[]> {
     }
 
     const data: ChannelsResponse = await response.json();
-    
-    // Transform backend data to frontend format
-    return (data.channels || []).map(transformChannel);
+
+    // Transform backend data to frontend format and filter out unknown channels
+    return (data.channels || [])
+      .map(transformChannel)
+      .filter((channel): channel is Channel => channel !== null);
   } catch (error) {
     console.error('Error fetching channels:', error);
     return [];
