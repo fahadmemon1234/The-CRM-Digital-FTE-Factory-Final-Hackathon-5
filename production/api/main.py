@@ -339,8 +339,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
 
         # Create ticket from WhatsApp message
         pool = await get_db_pool()
-        ticket_uuid = uuid_module.uuid4()
-        ticket_id = f"TKT-{ticket_uuid.hex[:8].upper()}"
+        ticket_id = f"TKT-{uuid_module.uuid4().hex[:9].upper()}"
         customer_id = None
 
         async with pool.acquire() as conn:
@@ -360,11 +359,11 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
 
             if not customer:
                 # Generate a UUID for customer ID
-                customer_id = uuid_module.uuid4()
+                customer_id = str(uuid_module.uuid4())
                 await conn.execute("""
                     INSERT INTO customers (id, phone, email, name, created_at)
                     VALUES ($1, $2, $3, $4, NOW())
-                """, str(customer_id), from_number, f"whatsapp_{from_number[-4:]}@temp.local", f"WhatsApp User {from_number[-4:]}")
+                """, customer_id, from_number, f"whatsapp_{from_number[-4:]}@temp.local", f"WhatsApp User {from_number[-4:]}")
             else:
                 customer_id = str(customer['id'])  # Convert to string for VARCHAR(36)
 
@@ -378,7 +377,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
                     id, customer_id, subject, source_channel, category,
                     status, priority, created_at
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-            """, str(ticket_uuid), customer_id, f"Support Request from WhatsApp", "whatsapp",
+            """, ticket_id, customer_id, f"Support Request {ticket_id}", "whatsapp",
                 db_category, db_status, db_priority)
 
             print(f"[WhatsApp Webhook] Ticket created: {ticket_id}")
@@ -492,10 +491,9 @@ async def email_webhook(request: Request, background_tasks: BackgroundTasks):
         
         # Create ticket from email
         pool = await get_db_pool()
-        ticket_uuid = uuid_module.uuid4()
-        ticket_id = f"TKT-{ticket_uuid.hex[:8].upper()}"
+        ticket_id = f"TKT-{uuid_module.uuid4().hex[:9].upper()}"
         customer_id = None
-        
+
         async with pool.acquire() as conn:
             # Find or create customer by email
             customer = await conn.fetchrow(
@@ -504,12 +502,11 @@ async def email_webhook(request: Request, background_tasks: BackgroundTasks):
             )
 
             if not customer:
-                # Generate a UUID for customer ID
-                customer_id = uuid_module.uuid4()
+                customer_id = str(uuid_module.uuid4())
                 await conn.execute("""
                     INSERT INTO customers (id, email, name, created_at)
                     VALUES ($1, $2, $3, NOW())
-                """, str(customer_id), from_email, from_email.split('@')[0])
+                """, customer_id, from_email, from_email.split('@')[0])
             else:
                 customer_id = str(customer['id'])  # Convert to string for VARCHAR(36)
 
@@ -523,7 +520,7 @@ async def email_webhook(request: Request, background_tasks: BackgroundTasks):
                     id, customer_id, subject, source_channel, category,
                     status, priority, created_at
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-            """, str(ticket_uuid), customer_id, subject, "email",
+            """, ticket_id, customer_id, f"{subject} ({ticket_id})", "email",
                 db_category, db_status, db_priority)
             
             print(f"[Email Webhook] Ticket created: {ticket_id}")
@@ -679,7 +676,14 @@ async def submit_support_form(
             db_priority = PRIORITY_MAP.get('medium', 'MEDIUM')
             
             # Use channel from submission (defaults to 'web_form' if not provided)
+            # Determine the channel, defaulting to web_form
             source_channel = submission.channel or 'web_form'
+            # Validate channel against allowed values
+            if source_channel not in ('web_form', 'email', 'whatsapp'):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid channel '{source_channel}'. Must be one of: web_form, email, whatsapp"
+                )
 
             await conn.execute("""
                 INSERT INTO tickets (

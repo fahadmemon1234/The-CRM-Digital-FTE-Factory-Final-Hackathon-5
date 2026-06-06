@@ -10,11 +10,11 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 const CATEGORIES = [
-  { value: "GENERAL_INQUIRY", label: "General Question" },
-  { value: "TECHNICAL_SUPPORT", label: "Technical Support" },
-  { value: "BILLING", label: "Billing Inquiry" },
-  { value: "BUG_REPORT", label: "Bug Report" },
-  { value: "FEATURE_REQUEST", label: "Feature Request" }
+  { value: "general", label: "General Question" },
+  { value: "technical", label: "Technical Support" },
+  { value: "billing", label: "Billing Inquiry" },
+  { value: "bug_report", label: "Bug Report" },
+  { value: "feedback", label: "Feature Request" }
 ]
 
 const CHANNELS = [
@@ -55,7 +55,7 @@ export default function ChannelsPage() {
     email: "",
     phone: "",
     subject: "",
-    category: "GENERAL_INQUIRY",
+    category: "general",
     priority: "MEDIUM",
     message: ""
   })
@@ -116,7 +116,11 @@ export default function ChannelsPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || "Submission failed")
+        const detail = errorData.detail
+        const message = Array.isArray(detail)
+          ? detail.map((e: any) => e.msg || e.message).join(", ")
+          : detail || "Submission failed"
+        throw new Error(message)
       }
 
       const data = await response.json()
@@ -168,7 +172,7 @@ export default function ChannelsPage() {
                 <div className="flex gap-3 justify-center">
                   <Button onClick={() => {
                     setStatus("idle")
-                    setFormData({ name: "", email: "", phone: "", subject: "", category: "GENERAL_INQUIRY", priority: "MEDIUM", message: "" })
+                    setFormData({ name: "", email: "", phone: "", subject: "", category: "general", priority: "MEDIUM", message: "" })
                   }} variant="premium">
                     Create Another Ticket
                   </Button>

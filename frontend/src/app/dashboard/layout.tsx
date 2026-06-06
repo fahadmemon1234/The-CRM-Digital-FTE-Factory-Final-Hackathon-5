@@ -231,7 +231,6 @@ export default function DashboardLayout({
           <div className="border-t border-neutral-800/50 p-3">
             <div className="flex items-center gap-3 rounded-md border border-neutral-700/30 bg-neutral-800/30 p-2 backdrop-blur-xl">
               <Avatar>
-                <AvatarImage src="/avatars/user.jpg" />
                 <AvatarFallback className="bg-gradient-to-br from-cyan-600 to-indigo-600 text-xs font-medium text-white">
                   {user?.name?.charAt(0) || 'U'}
                 </AvatarFallback>

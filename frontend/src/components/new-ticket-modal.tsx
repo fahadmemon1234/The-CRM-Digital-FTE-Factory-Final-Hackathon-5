@@ -83,8 +83,16 @@ export default function NewTicketModal({ open, onOpenChange }: NewTicketModalPro
       console.log("📥 Response status:", response.status)
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || "Failed to create ticket")
+        // Try to parse a JSON error body; if that fails fall back to plain text
+        let errorMsg = "Failed to create ticket"
+        try {
+          const errorData = await response.json()
+          errorMsg = errorData.detail || errorMsg
+        } catch {
+          const txt = await response.text()
+          if (txt) errorMsg = txt
+        }
+        throw new Error(errorMsg)
       }
 
       const data = await response.json()
