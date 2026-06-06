@@ -748,7 +748,7 @@ async def submit_support_form(
                 False,  # is_read = FALSE (unread)
                 ticket_id,  # reference_id = ticket_id (not UUID)
                 'ticket',  # reference_type
-                {
+                json.dumps({
                     'ticket_id': ticket_id,
                     'customer': submission.name,
                     'email': submission.email,
@@ -756,7 +756,7 @@ async def submit_support_form(
                     'priority': 'MEDIUM',
                     'icon': 'ticket',
                     'color': 'blue'
-                }
+                })
             )
 
             print(f"[INFO] Notification created: {notification_id}")

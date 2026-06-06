@@ -8,6 +8,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import asyncpg
 import sys
+import json
 
 print("[NOTIFICATIONS API] Loading notifications_api.py module...", file=sys.stderr)
 
@@ -116,7 +117,14 @@ async def get_notifications(
             # Convert to response format
             result = []
             for notif in notifications:
+                # Handle metadata which might be a string or a dict
                 metadata = notif['metadata'] or {}
+                if isinstance(metadata, str):
+                    try:
+                        metadata = json.loads(metadata)
+                    except:
+                        metadata = {}
+                
                 result.append({
                     'id': str(notif['id']),
                     'type': notif['notification_type'],
